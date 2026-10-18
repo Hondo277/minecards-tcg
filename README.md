@@ -18,6 +18,7 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Puissance, attaque, défense et image de chaque carte.
 - Quantité disponible pour les cartes synchronisées depuis MineCards.
 - Compteur de doublons dans la collection et le profil : somme de `max(quantité − 1, 0)` pour chaque carte différente. Exemple : 3 exemplaires = 2 doublons ; l’original n’est jamais compté.
+- Tris des doublons croissant / décroissant : affichent uniquement les cartes ayant au moins deux exemplaires, avec le nombre supplémentaire par carte et le total filtré. La recherche et le filtre de rareté restent disponibles.
 - Fusion des cartes locales historiques et des cartes importées, sans compter deux fois les correspondances reconnues.
 - Un nouveau compte démarre sans carte ni deck favori.
 

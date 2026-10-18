@@ -23,8 +23,8 @@ function collectionCopyStats(collection) {
         const previous=groups.get(key);
         groups.set(key,{card:previous?.card||card,quantity:(previous?.quantity||0)+1});
     }
-    const entries=[...groups.values()];
-    return {cards:entries.map(entry=>entry.card),unique:entries.length,copies:entries.reduce((sum,entry)=>sum+entry.quantity,0),duplicates:entries.reduce((sum,entry)=>sum+Math.max(0,entry.quantity-1),0)};
+    const entries=[...groups.values()].map(entry=>({...entry,duplicates:Math.max(0,entry.quantity-1)}));
+    return {entries,cards:entries.map(entry=>entry.card),unique:entries.length,copies:entries.reduce((sum,entry)=>sum+entry.quantity,0),duplicates:entries.reduce((sum,entry)=>sum+entry.duplicates,0)};
 }
 
 function fillProfileFeaturedDeck(value) {
