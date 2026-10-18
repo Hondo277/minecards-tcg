@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineCards TCG - Plateforme de Collection & Stratégie Avancée</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        tcg: {
+                            base: '#101624',
+                            surface: '#1a2335',
+                            surfaceHover: '#26334a',
+                            border: '#344058',
+                            emerald: '#ffa58f',
+                            emeraldGlow: '#ec897b',
+                            gold: '#f59e0b',
+                            purple: '#8b5cf6',
+                            cyan: '#06b6d4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #050b08; color: #f3f4f6; }
+        .font-gaming { font-family: 'Orbitron', sans-serif; }
+        
+        .card-container {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-container:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.3);
+            border-color: rgba(16, 185, 129, 0.6);
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            border-color: #34d399;
+        }
+
+        .glass-panel {
+            background: rgba(12, 22, 17, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(27, 51, 38, 0.8);
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #050b08; }
+        ::-webkit-scrollbar-thumb { background: #1b3326; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    </style>
+    <style>
+        :root { color-scheme:dark; --ink:#111611; --panel:#1b2119; --line:#343d2b; --moss:#a9c95b; --lime:#e5dc48; --muted:#9da596; --paper:#f2f3e9; --sidebar-width:250px; }
+        * { scrollbar-color:#56603b #111611; }
+        body { background:radial-gradient(ellipse at 74% -30%,#293523 0,#171c16 34rem,#111611 76rem);color:var(--paper); }
+        body::before { content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.09;background-image:linear-gradient(rgba(229,220,72,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(229,220,72,.045) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to bottom,black,transparent 78%); }
+        header.glass-panel { position:fixed!important;inset:0 auto 0 0;width:var(--sidebar-width);height:100dvh;overflow-y:auto;border:0!important;border-right:1px solid #30382b!important;border-radius:0!important;background:#141914!important;box-shadow:8px 0 38px #0003!important;backdrop-filter:none!important; }
+        header > div { width:100%;max-width:none!important;min-height:100%;padding:26px 16px 18px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:30px!important; }
+        header > div > div:first-child { padding:0 9px 21px;border-bottom:1px solid #30382b; }
+        header h1 { letter-spacing:-.045em!important;font-family:'Inter',sans-serif!important;font-size:23px!important;color:#f0f1e9!important;background:none!important;-webkit-text-fill-color:#f0f1e9; }
+        header .w-12.h-12 { width:42px!important;height:42px!important;flex:none;border-radius:13px!important;background:#d8e646!important;color:#171a11;box-shadow:none!important; }
+        header .w-12.h-12 i { color:#171a11; }
+        header p { color:#899184!important;letter-spacing:.15em;font-size:8px!important; }
+        header > div > div:nth-child(2) { display:flex;flex-direction:column;align-items:stretch;width:100%;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;gap:5px!important; }
+        header > div > div:nth-child(2)::before { content:'TA COLLECTION';padding:0 11px 10px;color:#77806e;font-size:9px;font-weight:800;letter-spacing:.17em; }
+        .tab-button { width:100%;min-height:44px;justify-content:flex-start!important;padding:11px 13px!important;border:1px solid transparent!important;border-radius:10px!important;color:#a6ada0!important;font-family:'Inter',sans-serif!important;font-size:12px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important; }
+        .tab-button > i { width:17px;text-align:center;color:#899284!important; }
+        .tab-button:hover { color:#eef0e7!important;background:#ffffff08; }
+        .tab-button.active { background:#252d20!important;color:#d7ec59!important;border-color:#3e492d!important;box-shadow:inset 3px 0 #d7e64c!important; }
+        .tab-button.active > i { color:#d7e64c!important; }
+        #tab-admin.hidden { display:none!important; }
+        header > div > div:last-child { width:100%;margin-top:auto;padding-top:17px;border-top:1px solid #30382b;display:grid;grid-template-columns:1fr 42px;gap:8px!important; }
+        .profile-chip { grid-column:1;max-width:none;min-width:0; }
+        .logout-button { grid-column:2;justify-content:center;padding:10px!important; }
+        .logout-button span { display:none; }
+        main { width:calc(100% - var(--sidebar-width))!important;max-width:1500px!important;margin:0 0 0 var(--sidebar-width)!important;padding:40px clamp(24px,4vw,64px) 60px!important; }
+        .glass-panel { background:linear-gradient(145deg,rgba(32,38,30,.97),rgba(24,29,23,.97))!important;border:1px solid #363e30!important;box-shadow:0 12px 35px #0002;backdrop-filter:blur(12px); }
+        .tab-section { animation:rise-in .28s ease-out both; }
+        @keyframes rise-in { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+        #section-collection > .grid:first-child > .glass-panel { min-height:118px; border-radius:16px!important; padding:20px!important; }
+        #section-collection > .grid:first-child > .glass-panel h3 { font-size:27px!important; }
+        #section-collection > .grid:first-child .w-12.h-12 { border-radius:12px!important; }
+        #section-collection > .glass-panel { border-radius:16px!important; }
+        input,select { background:#111a15!important; border-color:#405044!important; color:#eff5e9!important; }
+        input:focus,select:focus { border-color:#acd47c!important; box-shadow:0 0 0 3px #a8d2791c; }
+        input::placeholder { color:#718076!important; }
+        button { transition:transform .18s ease,filter .18s ease,box-shadow .18s ease; }
+        button:hover { filter:brightness(1.08); }
+        button:active { transform:translateY(1px); }
+        .bg-gradient-to-r.from-emerald-600,.bg-emerald-600 { background:linear-gradient(135deg,#e9e34b,#c9d743)!important;color:#1c1d11!important;box-shadow:0 7px 20px #dbd53b22!important; }
+        .bg-amber-500 { background:linear-gradient(135deg,#f0cc78,#d2a447)!important; color:#2d2411!important; }
+        .card-container { border-radius:17px!important; border-color:#455448!important; background:linear-gradient(150deg,#25332a,#19231d)!important; box-shadow:0 12px 24px #0003!important; }
+        .card-container:hover { transform:translateY(-5px)!important; border-color:#a6ce79!important; box-shadow:0 18px 36px #0005,0 0 0 1px #a6ce7933!important; }
+        .card-container h4 { white-space:normal!important; min-height:2.5rem; }
+        .card-container .bg-tcg-base { background:#121a15!important; border-color:#34443a!important; }
+        .card-container .border-tcg-border { border-color:#3b4b3f!important; }
+        #section-builder > .glass-panel:first-child { border-radius:22px!important; padding:clamp(24px,5vw,48px)!important; background:radial-gradient(ellipse at 85% 10%,#5673454d,transparent 35%),linear-gradient(145deg,#26382b,#17221b)!important; }
+        #section-builder h2,#section-decks h2 { letter-spacing:-.04em; }
+        #builder-empty-state,#no-favorites-state,#empty-state { border-radius:20px!important; background:linear-gradient(145deg,#1e2a22,#17201a)!important; }
+        #favorite-decks-grid > div { border-radius:18px!important; border-color:#465548!important; background:linear-gradient(145deg,#25332a,#19231d)!important; }
+        #card-modal > div { border-radius:22px!important; border-color:#718365!important; box-shadow:0 30px 100px #000a!important; }
+        #card-modal > div > div:first-child { background:#26352b!important; }
+        footer { width:calc(100% - var(--sidebar-width));margin-left:var(--sidebar-width);background:#141914!important;border-color:#30382b!important; }
+        .auth-loading > header,.auth-loading > main,.auth-loading > footer { visibility:hidden; }
+        .auth-screen { position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:auto; padding:24px; background:radial-gradient(ellipse at 50% 0%,#42583a 0,#18251d 38rem,#101714 85%); }
+        .auth-screen.hidden,.auth-form.hidden { display:none; }
+        .auth-card { width:min(100%,450px); padding:38px; border:1px solid #596c50; border-radius:24px; background:linear-gradient(150deg,#25352a,#17221b); box-shadow:0 28px 100px #0009; }
+        .auth-mark { width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#c0e889,#548443);color:#172318;font-size:23px;box-shadow:0 8px 24px #92c96c33;margin-bottom:23px; }
+        .auth-kicker { color:#b7d98f;font-size:10px;letter-spacing:.18em;font-weight:800;margin-bottom:10px; }
+        .auth-card h2 { color:#f1f3e9;font-family:'Orbitron',sans-serif;font-size:clamp(22px,5vw,29px);font-weight:800;line-height:1.25;letter-spacing:-.04em; }
+        .auth-subtitle { color:#aab6aa;font-size:13px;line-height:1.6;margin-top:9px; }
+        .auth-switch { display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;margin:25px 0 22px;background:#111a15;border:1px solid #37473b;border-radius:12px; }
+        .auth-tab { padding:10px 8px;border-radius:8px;color:#9ba99e;font-size:12px;font-weight:700;background:transparent; }
+        .auth-tab.active { background:#314333;color:#d6efb7; }
+        .auth-form { display:flex;flex-direction:column;gap:9px; }
+        .auth-form label { margin-top:5px;color:#e2e9de;font-size:12px;font-weight:700; }
+        .auth-form input { width:100%;padding:13px 14px;border:1px solid #405044;border-radius:11px;font-size:14px; }
+        .auth-form small { color:#8d9c90;font-size:10px;line-height:1.5;margin:0 1px 3px; }
+        .auth-submit { display:flex;justify-content:center;align-items:center;gap:9px;margin-top:12px;padding:13px;border-radius:11px;background:linear-gradient(135deg,#c3e88c,#8dbd62);color:#1d2b19;font-size:12px;font-weight:900;letter-spacing:.04em; }
+        .auth-message { min-height:19px;margin-top:12px;color:#ffaaa0;font-size:12px;line-height:1.5; }
+        .auth-message.success { color:#c5e99b; }
+        .auth-local-note { display:flex;align-items:flex-start;gap:8px;padding-top:15px;border-top:1px solid #39493d;color:#849286;font-size:10px;line-height:1.5; }
+        .auth-local-note i { color:#b7d98f;margin-top:1px; }
+        .profile-chip { display:flex;align-items:center;gap:8px;max-width:170px;padding:9px 12px;border:1px solid #405044;border-radius:10px;color:#c1d2ba;background:#19241d;font-size:11px;font-weight:700; }
+        .profile-chip i { color:#b7d98f; }
+        .profile-chip span { overflow:hidden;text-overflow:ellipsis; }
+        .logout-button { display:flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid #4b453b;border-radius:10px;background:#241f19;color:#d7c9ae;font-size:11px;font-weight:700; }
+        #tab-admin.hidden { display:none; }
+        .admin-heading { display:flex;align-items:center;gap:18px;padding:24px;border-radius:18px!important; }
+        .admin-emblem { width:52px;height:52px;display:grid;place-items:center;border-radius:15px;background:#c6e993;color:#1e2d1c;font-size:20px; }
+        .admin-kicker { color:#badb91;font-size:9px;font-weight:800;letter-spacing:.18em;margin-bottom:4px; }
+        .admin-heading h2 { color:#f1f3e9;font:800 23px 'Orbitron',sans-serif; }
+        .admin-layout { display:grid;grid-template-columns:minmax(270px, .8fr) minmax(0, 1.5fr);gap:18px;align-items:start; }
+        .admin-users-panel,.admin-detail { padding:20px;border-radius:18px!important;min-width:0; }
+        .admin-list-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px; }
+        .admin-list-heading h3,.admin-detail h3 { color:#edf2e9;font:700 13px 'Orbitron',sans-serif; }
+        .admin-list-heading p { color:#8e9c90;font-size:10px;margin-top:4px; }
+        #admin-search { width:min(220px,52%);padding:9px 11px;border-radius:9px;font-size:11px; }
+        .admin-users-list { display:grid;gap:8px;max-height:65vh;overflow:auto; }
+        .admin-user-row { display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px;border:1px solid #35443a;border-radius:11px;background:#151f19;color:#dce7d7;text-align:left; }
+        .admin-user-row:hover,.admin-user-row.selected { border-color:#9bc875;background:#243329; }
+        .admin-user-row strong { display:block;font-size:12px;overflow-wrap:anywhere; }
+        .admin-user-row small { display:block;margin-top:4px;color:#8c9b8e;font-size:9px; }
+        .admin-user-count { flex:none;padding:6px 8px;border-radius:8px;background:#30422f;color:#c4e69c;font-size:9px;font-weight:800; }
+        .admin-empty { display:grid;place-items:center;text-align:center;min-height:260px;color:#8c9b8e; }
+        .admin-empty > i { color:#b8d98c;font-size:28px;margin-bottom:12px; }
+        .admin-empty h3 { color:#dce7d7;margin-bottom:7px; }
+        .admin-empty p { font-size:11px; }
+        .admin-detail-header { display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid #3a493e; }
+        .admin-detail-header p { color:#91a092;font-size:10px;margin-top:5px; }
+        .admin-role-badge { padding:6px 9px;border-radius:999px;background:#35462f;color:#c7e69d;font-size:9px;font-weight:800;text-transform:uppercase; }
+        .admin-data-section { margin-top:18px; }
+        .admin-data-section h4 { color:#bac9b8;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px; }
+        .admin-record-list { display:grid;gap:7px;max-height:42vh;overflow:auto; }
+        .admin-record { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:#131c16;color:#dce7d7;font-size:11px; }
+        .admin-record span:last-child { color:#c5df9f;font-weight:800;white-space:nowrap; }
+        .admin-record-main { min-width:0;overflow-wrap:anywhere; }
+        .admin-record-actions { display:flex;align-items:center;gap:9px;flex:none; }
+        .admin-delete-button { padding:7px 9px;border:1px solid #75433b;border-radius:8px;background:#321f1c;color:#ffb4a8;font-size:10px;font-weight:800; }
+        .admin-delete-button:hover { background:#512923;border-color:#bd6555; }
+        .admin-delete-account { margin-top:14px; }
+        .admin-no-records { color:#819084;font-size:11px;padding:12px;border:1px dashed #435145;border-radius:9px; }
+        @media (max-width:1000px) { :root { --sidebar-width:218px; } main { padding-inline:24px!important; } header > div { padding-inline:12px!important; } header > div > div:last-child > button:first-child { padding-inline:8px!important;font-size:10px!important; } }
+        @media (max-width:767px) { .auth-card { padding:27px 22px; } .profile-chip { max-width:none; } header.glass-panel { position:sticky!important;inset:auto;width:100%;height:auto;max-height:none;overflow:visible;border-right:0!important;border-bottom:1px solid #30382b!important;z-index:50; } header > div { min-height:0;padding:12px 14px 10px!important;gap:11px!important; } header > div > div:first-child { padding:0 2px 10px;border-bottom:0; } header > div > div:first-child .w-12.h-12 { width:34px!important;height:34px!important; } header h1 { font-size:18px!important; } header > div > div:first-child p { display:none; } header > div > div:nth-child(2) { flex-direction:row;overflow-x:auto;padding-bottom:2px!important;gap:5px!important; } header > div > div:nth-child(2)::before { display:none; } .tab-button { width:auto;min-height:39px;flex:0 0 auto;justify-content:center!important;padding:9px 11px!important;font-size:10px!important; } header > div > div:last-child { grid-template-columns:minmax(0,1fr) 42px 42px;align-items:center;margin-top:0;padding-top:8px; } header > div > div:last-child > button:first-child { position:static;grid-column:1;width:auto;padding:10px 8px!important; } .profile-chip { grid-column:2;justify-content:center;padding:10px!important; } .profile-chip span { display:none; } .logout-button { grid-column:3; } .logout-button span { display:none; } main { width:100%!important;margin:0!important;padding:25px 16px 40px!important; } footer { width:100%;margin:0; } #section-collection > .grid:first-child > .glass-panel { padding:15px!important;min-height:100px; } }
+        @media (max-width:420px) { header > div > div:last-child > button:first-child { font-size:0!important; } header > div > div:last-child > button:first-child i { font-size:12px; } }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }
+    </style>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2314532d'/><stop offset='100%25' stop-color='%23166534'/></linearGradient><linearGradient id='card' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23fbbf24'/><stop offset='100%25' stop-color='%23d97706'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23bg)'/><rect x='28' y='26' width='36' height='52' rx='6' transform='rotate(-10 46 52)' fill='%2338bdf8' stroke='%23ffffff' stroke-width='3'/><rect x='40' y='22' width='36' height='52' rx='6' transform='rotate(10 58 48)' fill='url(%23card)' stroke='%23ffffff' stroke-width='3'/><path d='M58 28 L48 46 H56 L52 62 L66 44 H58 Z' fill='%23ffffff'/></svg>">
+    <style>
+        /* Atelier de collectionneur : mise en page et palette communes. */
+        :root { --sidebar-width:238px;--ink:#0d1713;--panel:#16231c;--line:#2c3d32;--lime:#b8ed80;--paper:#eef3e9; }
+        body { background:#0d1713; }
+        body::before { opacity:.18;background-image:radial-gradient(#76937e 1px,transparent 1px);background-size:28px 28px;mask-image:linear-gradient(to bottom,black,transparent 60%); }
+        .font-gaming { font-family:'Inter',sans-serif;letter-spacing:-.025em; }
+        header.glass-panel { background:#111e17!important;border-right-color:#26372d!important;box-shadow:none!important; }
+        header > div { padding:30px 18px 22px!important;gap:34px!important; }
+        header > div > div:first-child { padding:0 4px 25px;border-color:#2a3a2f;gap:10px; }
+        header > div > div:first-child > div:last-child { min-width:0; }
+        header .w-12.h-12 { width:38px!important;height:38px!important;background:#b8ed80!important;border-radius:11px!important; }
+        header h1 { font-size:21px!important; }
+        header p { font-size:7px!important;letter-spacing:.1em;line-height:1.6; }
+        header > div > div:nth-child(2)::before { content:'EXPLORER';color:#748d7a; }
+        .tab-button { min-height:49px;border-radius:12px!important;color:#a3b5a8!important; }
+        .tab-button.active { background:#223c29!important;color:#c5f699!important;border-color:#36533b!important;box-shadow:none!important; }
+        .tab-button.active > i { color:#b8ed80!important; }
+        header > div > div:last-child { border-color:#2a3a2f;grid-template-columns:minmax(0,1fr) 38px; }
+        header > div > div:last-child > button:first-child { position:static!important;grid-column:2!important;grid-row:1!important;width:38px!important;padding:10px!important;background:#192920!important;color:#91a897!important;border-color:#314737!important; }
+        .profile-chip { grid-column:1!important;grid-row:1;background:#192920;border-color:#314737;color:#c5d6c7; }
+        .profile-chip i { color:#b8ed80; }
+        .logout-button { grid-column:1/-1!important;grid-row:2;border:0;background:transparent;color:#819886;justify-content:flex-start!important;padding-left:12px!important; }
+        .logout-button span { display:inline; }
+        main { padding-top:32px!important;max-width:none!important; }
+        .workspace-toolbar { display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 0 30px;border-bottom:1px solid #293b2f; }
+        .workspace-kicker { color:#8da183;font-size:9px;font-weight:700;letter-spacing:.2em;margin-bottom:10px; }
+        #workspace-title { font:700 clamp(27px,3vw,38px)/1.16 'Inter',sans-serif;letter-spacing:-.055em;color:#f0f5e9; }
+        #workspace-title span { color:#b8ed80; }
+        .workspace-description { margin-top:10px;color:#91a394;font-size:12px;line-height:1.6; }
+        .workspace-add-button { flex:none;display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 18px;border:1px solid #c9f49e;border-radius:11px;background:#b8ed80;color:#18311d;font-size:12px;font-weight:750;box-shadow:0 4px 20px #b8ed8010; }
+        .workspace-add-button:hover { background:#c8f69b;box-shadow:0 6px 24px #b8ed8020; }
+        .glass-panel { background:#16231c!important;border-color:#2b4031!important;box-shadow:none; }
+        #section-collection > .grid:first-child > .glass-panel { border-radius:13px!important;min-height:111px; }
+        #section-collection > .grid:first-child > .glass-panel h3 { font:700 29px/1.2 'Inter',sans-serif;letter-spacing:-.04em; }
+        #section-collection > .grid:first-child .w-12.h-12 { width:40px;height:40px; }
+        input,select { background:#0e1a13!important;border-color:#33493a!important; }
+        input:focus,select:focus { border-color:#b8ed80!important;box-shadow:0 0 0 3px #b8ed8018; }
+        .bg-gradient-to-r.from-emerald-600,.bg-emerald-600 { background:#b8ed80!important;color:#18311d!important;box-shadow:none!important; }
+        .card-container { background:#19291f!important;border-radius:14px!important;border-color:#34483a!important;box-shadow:none!important; }
+        .card-container:hover { border-color:#98c574!important;transform:translateY(-3px)!important;box-shadow:0 12px 26px #0004!important; }
+        .card-container .bg-tcg-base { background:#101d15!important;border-color:#304435!important; }
+        .card-container .border-tcg-border { border-color:#304435!important; }
+        #section-builder > .glass-panel:first-child { background:radial-gradient(ellipse at 100% 0,#3e663b55,transparent 55%),#16231c!important;border-radius:16px!important; }
+        #favorite-decks-grid > div { background:#19291f!important;border-color:#34483a!important;border-radius:14px!important; }
+        .auth-screen { background:radial-gradient(ellipse at 20% 0,#315132 0,transparent 60%),#0d1713; }
+        .auth-card { background:#16251c;border-color:#40563b;border-radius:18px; }
+        .auth-card h2,.admin-heading h2,.admin-list-heading h3,.admin-detail h3 { font-family:'Inter',sans-serif;letter-spacing:-.035em; }
+        .auth-mark,.auth-submit { background:#b8ed80;color:#18311d;box-shadow:none; }
+        .auth-tab.active { background:#2b422e;color:#c8f6a0; }
+        .admin-emblem { background:#b8ed80; }
+        footer { background:#0d1713!important;border-color:#293b2f!important; }
+        @media (max-width:1000px) { :root { --sidebar-width:214px; } }
+        @media (max-width:767px) {
+            header > div { padding:12px 14px!important;gap:10px!important; }
+            header > div > div:first-child { padding:0; }
+            header > div > div:last-child { grid-template-columns:minmax(0,1fr) 38px 38px; }
+            .profile-chip { justify-content:flex-start!important; }
+            .profile-chip span { display:block; }
+            .logout-button { grid-column:3!important;grid-row:1;justify-content:center!important;padding:10px!important; }
+            .logout-button span { display:none; }
+            .workspace-toolbar { align-items:flex-start;gap:14px;flex-wrap:wrap;padding-bottom:22px; }
+            .workspace-toolbar > div { flex:1 1 200px; }
+            .workspace-add-button { padding:10px 13px;font-size:11px; }
+            .workspace-description { max-width:310px; }
+            main { padding-top:25px!important; }
+        }
+    </style>
+    <style>
+        .profile-layout { display:grid;grid-template-columns:minmax(240px,.8fr) minmax(0,1.6fr);gap:24px;align-items:start; }
+        .profile-layout.hidden { display:none; }
+        .profile-summary,.profile-settings { padding:26px;border-radius:16px; }
+        .profile-summary { text-align:center;overflow-wrap:anywhere; }
+        .profile-avatar { --avatar-color:#b8ed80;display:inline-grid;place-items:center;width:86px;height:86px;border-radius:25px;background:color-mix(in srgb,var(--avatar-color) 14%,#14231a);border:1px solid var(--avatar-color);color:var(--avatar-color);font-size:32px; }
+        .profile-avatar[data-accent="amber"] { --avatar-color:#f2c66c; }
+        .profile-avatar[data-accent="cyan"] { --avatar-color:#7cdeea; }
+        .profile-avatar[data-accent="violet"] { --avatar-color:#c4a4f0; }
+        .profile-summary h3 { margin-top:18px;font-size:23px;font-weight:700;letter-spacing:-.035em; }
+        .profile-summary p { color:#97ac9c;font-size:12px;line-height:1.7;margin-top:8px;white-space:pre-wrap; }
+        .profile-summary small { display:block;color:#768e7d;margin-top:18px;font-size:11px; }
+        .profile-settings h3 { font-weight:700;font-size:17px; }
+        .profile-settings > p { color:#91a394;font-size:12px;line-height:1.6;margin:7px 0 20px; }
+        .settings-form { display:grid;gap:14px; }
+        .settings-form label { display:grid;gap:7px;color:#c8d8cb;font-size:12px;font-weight:600; }
+        .settings-form input,.settings-form select,.settings-form textarea { width:100%;min-width:0;padding:12px;border-radius:10px;border:1px solid #33493a;background:#0e1a13;color:#eef3e9;font:400 13px 'Inter',sans-serif; }
+        .settings-form textarea { resize:vertical;min-height:92px; }
+        .settings-form textarea:focus { outline:1px solid #b8ed80; }
+        .settings-form small { color:#829b88;font-size:11px;line-height:1.6; }
+        .settings-form .workspace-add-button { justify-self:start; }
+        .settings-pair { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+        .settings-message { min-height:18px;color:#f7a69a;font-size:12px;line-height:1.6; }
+        .settings-message.success { color:#b8ed80; }
+        button:disabled { opacity:.6;cursor:wait; }
+        @media(max-width:1000px) { .profile-layout { grid-template-columns:1fr; } }
+        @media(max-width:420px) { .settings-pair { grid-template-columns:1fr; } .profile-settings,.profile-summary { padding:20px; } }
+    </style>
+    <link rel="stylesheet" href="/theme.css">
+    <script>try { document.documentElement.classList.toggle('sidebar-collapsed', localStorage.getItem('mc-sidebar-collapsed') === '1'); } catch {}</script>
+</head>
+<body class="auth-loading bg-tcg-base text-gray-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+
+    <div id="auth-screen" class="auth-screen" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <div class="auth-card">
+            <div class="auth-mark"><i class="fa-solid fa-cube"></i></div>
+            <p class="auth-kicker">MINECARDS · ESPACE PERSONNEL</p>
+            <h2 id="auth-title">Ta collection, ton profil</h2>
+            <p id="auth-subtitle" class="auth-subtitle">Connecte-toi pour retrouver tes cartes et tes decks favoris.</p>
+            <div class="auth-switch" role="tablist" aria-label="Accès au compte">
+                <button id="auth-login-tab" class="auth-tab active" type="button" onclick="showAuthForm('login')">Connexion</button>
+                <button id="auth-register-tab" class="auth-tab" type="button" onclick="showAuthForm('register')">Créer un profil</button>
+            </div>
+            <form id="login-form" class="auth-form" onsubmit="submitAuth(event, 'login')">
+                <label for="login-username">Identifiant</label>
+                <input id="login-username" name="username" autocomplete="username" minlength="3" maxlength="24" required placeholder="ex. steve_42">
+                <label for="login-password">Mot de passe</label>
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Ton mot de passe">
+                <button class="auth-submit" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</button>
+            </form>
+            <form id="register-form" class="auth-form hidden" onsubmit="submitAuth(event, 'register')">
+                <label for="register-username">Identifiant</label>
+                <input id="register-username" name="username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" required placeholder="ex. steve_42">
+                <small>3 à 24 caractères : lettres sans accent, chiffres ou _.</small>
+                <label for="register-password">Mot de passe</label>
+                <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required placeholder="10 caractères minimum">
+                <small>Aucun email n’est demandé. Garde ton mot de passe en lieu sûr : il n’y a pas de réinitialisation par email.</small>
+                <button class="auth-submit" type="submit"><i class="fa-solid fa-user-plus"></i> Créer mon profil</button>
+            </form>
+            <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+            <p class="auth-local-note"><i class="fa-solid fa-shield-halved"></i> Les profils et les mots de passe restent sur ce serveur local.</p>
+        </div>
+    </div>
+
+    <!-- En-tête Immersif -->
+    <header class="glass-panel sticky top-0 z-50 border-b border-tcg-border shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-900/50 ring-2 ring-emerald-400/30">
+                    <i class="fa-solid fa-cube text-white text-2xl"></i>
+                </div>
+                <div class="sidebar-brand-text">
+                    <h1 class="font-gaming text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">MINECARDS</h1>
+                    <p class="text-xs text-emerald-400/80 font-medium tracking-wide">COLLECTION PERSONNELLE • PROFIL ACTIF</p>
+                </div>
+            </div>
+
+            <!-- Navigation principale, onglet administration réservé aux admins -->
+            <div id="sidebar-navigation" class="flex items-center gap-2 bg-tcg-base p-1.5 rounded-2xl border border-tcg-border shadow-inner">
+                <button onclick="switchTab('collection')" id="tab-collection" title="Collection" aria-label="Collection" class="tab-button active px-5 py-2.5 rounded-xl text-xs font-gaming font-bold tracking-wider uppercase transition-all flex items-center gap-2 border border-transparent">
+                    <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i><span class="sidebar-tab-label">Collection</span>
+                </button>
+                <button onclick="switchTab('builder')" id="tab-builder" title="Créateur de Deck" aria-label="Créateur de Deck" class="tab-button px-5 py-2.5 rounded-xl text-xs font-gaming font-bold tracking-wider uppercase text-gray-400 hover:text-white transition-all flex items-center gap-2 border border-transparent">
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span class="sidebar-tab-label">Créateur de Deck</span>
+                </button>
+                <button onclick="switchTab('decks')" id="tab-decks" title="Decks favoris" aria-label="Decks favoris" class="tab-button px-5 py-2.5 rounded-xl text-xs font-gaming font-bold tracking-wider uppercase text-gray-400 hover:text-white transition-all flex items-center gap-2 border border-transparent">
+                    <i class="fa-solid fa-star text-amber-400" aria-hidden="true"></i><span class="sidebar-tab-label">Decks Favoris</span>
+                </button>
+                <button onclick="switchTab('minecards')" id="tab-minecards" title="MineCards connecté" aria-label="MineCards connecté" class="tab-button flex items-center gap-2"><i class="fa-solid fa-link" aria-hidden="true"></i><span class="sidebar-tab-label">MineCards connecté</span></button>
+                <button onclick="switchTab('admin')" id="tab-admin" title="Administration" aria-label="Administration" class="tab-button hidden px-5 py-2.5 rounded-xl text-xs font-gaming font-bold tracking-wider uppercase text-gray-400 hover:text-white transition-all flex items-center gap-2 border border-transparent">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-tab-label">Administration</span>
+                </button>
+            </div>
+
+            <!-- Actions Rapides -->
+            <div class="flex items-center gap-3" id="sidebar-account-actions">
+                <button type="button" id="sidebar-toggle" onclick="toggleSidebar()" aria-controls="sidebar-navigation" aria-expanded="true" aria-label="Réduire la barre latérale" title="Réduire la barre latérale"><i class="fa-solid fa-angles-left" aria-hidden="true"></i><span class="sidebar-toggle-label">Réduire la barre</span></button>
+                <button onclick="logoutProfile()" class="logout-button" title="Se déconnecter"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Quitter</span></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenu Principal -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+        <div class="workspace-toolbar">
+            <div>
+                <p class="workspace-kicker">MINECARDS / TON ESPACE</p>
+                <h2 id="workspace-title">Ma collection<span>.</span></h2>
+                <p id="workspace-description" class="workspace-description">Tes cartes, tes découvertes, ta prochaine stratégie.</p>
+            </div>
+            <button type="button" id="profile-chip" class="profile-chip" onclick="switchTab('profile')" title="Ouvrir mon profil" aria-label="Ouvrir mon profil"><i class="fa-solid fa-user" aria-hidden="true"></i><span id="profile-name"></span></button>
+        </div>
+
+
+        <section id="section-collection" class="tab-section space-y-8" aria-label="Ma collection">
+            <div class="collection-overview">
+                <div class="overview-lead"><span class="eyebrow">LE CARNET DE COLLECTION</span><h3>Chaque carte<br>ouvre le jeu.</h3><p>Retrouve tes cartes et prépare ta prochaine combinaison.</p><button type="button" onclick="switchTab('builder')" class="text-link">Composer un deck <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></div>
+                <div class="collection-metrics">
+                    <div class="metric metric-major"><i class="fa-solid fa-clone" aria-hidden="true"></i><h3 id="stat-total">0</h3><p>cartes dans ta collection</p></div>
+                    <div class="metric"><span>Puissance moyenne</span><h3 id="stat-avg-power">0</h3><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
+                    <div class="metric"><span>Netherite &amp; Diamant</span><h3 id="stat-rare">0</h3><i class="fa-solid fa-gem" aria-hidden="true"></i></div>
+                    <div class="metric"><span>Défense moyenne</span><h3 id="stat-avg-def">0</h3><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+                </div>
+            </div>
+            <div class="collection-browser">
+                <div class="library-heading"><div><span class="eyebrow">LA BIBLIOTHÈQUE</span><h3>Toutes tes cartes</h3></div><div class="view-switch" role="group" aria-label="Affichage des cartes"><button type="button" id="view-grid" class="selected" aria-pressed="true" onclick="setCollectionView('grid')" aria-label="Vue grille"><i class="fa-solid fa-grip" aria-hidden="true"></i></button><button type="button" id="view-list" aria-pressed="false" onclick="setCollectionView('list')" aria-label="Vue liste"><i class="fa-solid fa-list" aria-hidden="true"></i></button></div></div>
+                <div class="library-filters">
+                    <div class="library-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><label class="sr-only" for="search-input">Rechercher une carte</label><input type="search" id="search-input" oninput="filterAndRenderCards()" placeholder="Un nom, une carte à retrouver…"></div>
+                    <label class="filter-field" for="rarity-filter"><span>Rareté</span><select id="rarity-filter" onchange="filterAndRenderCards()"><option value="all">Toutes les raretés</option><option value="Netherite">Netherite</option><option value="Diamant">Diamant</option><option value="Or">Or</option><option value="Fer">Fer</option><option value="Cuivre">Cuivre</option><option value="Charbon">Charbon</option></select></label>
+                    <label class="filter-field" for="sort-select"><span>Classement</span><select id="sort-select" onchange="filterAndRenderCards()"><option value="valeur-desc">Puissance décroissante</option><option value="valeur-asc">Puissance croissante</option><option value="nom-asc">Nom A → Z</option><option value="nom-desc">Nom Z → A</option><option value="attaque-desc">Attaque max</option><option value="defense-desc">Défense max</option></select></label>
+                </div>
+                <div class="library-caption"><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
+                <div id="cards-grid" class="card-library-grid"></div>
+                <div id="empty-state" class="hidden interface-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h3>Aucune carte à afficher</h3><p>Ajoute ta première carte ou ajuste tes filtres.</p><button type="button" class="workspace-add-button" onclick="openAddModal()">Ajouter une carte</button></div>
+            </div>
+        </section>
+
+        <section id="section-builder" class="tab-section hidden" aria-label="Atelier de decks">
+            <div class="builder-layout">
+                <div class="builder-console glass-panel">
+                    <span class="eyebrow">01 / TA STRATÉGIE</span><div class="console-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div><h3>Le bon trio.<br>La bonne puissance.</h3><p>Choisis une puissance cible. L’atelier cherche les trois cartes dont la somme s’en rapproche le plus.</p>
+                    <label for="target-power">Puissance cible</label><input type="number" id="target-power" min="1" placeholder="350">
+                    <button type="button" onclick="generateDeck()" class="workspace-add-button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Composer mon deck</button>
+                    <div class="console-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Un deck contient trois cartes différentes. Une carte ne peut être utilisée qu’une fois, quel que soit ton stock.</span></div>
+                </div>
+                <div class="builder-workspace">
+                    <div class="library-heading"><div><span class="eyebrow">02 / LE RÉSULTAT</span><h3>Ta table de jeu</h3></div></div>
+                    <div id="builder-empty-state" class="builder-placeholder"><div class="deck-placeholders" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div><h3>À toi de jouer.</h3><p>Ton prochain deck commence par une puissance cible.</p></div>
+                    <div id="generated-deck-container" class="hidden space-y-6">
+                        <div class="deck-result-info"><div id="deck-status-badge"></div><h3 id="deck-title-display">Deck généré</h3><p id="deck-summary-text"></p></div>
+                        <div id="deck-cards-grid" class="deck-table-grid"></div>
+                        <div class="deck-save-bar"><label for="deck-name-input">Garder cette combinaison<input type="text" id="deck-name-input" placeholder="Le nom de ton deck…"></label><button type="button" onclick="saveCurrentDeckToFavorites()" class="workspace-add-button"><i class="fa-regular fa-star" aria-hidden="true"></i> Enregistrer en favori</button></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-decks" class="tab-section hidden space-y-6" aria-label="Decks favoris">
+            <div class="library-heading"><div><span class="eyebrow">TES COMBINAISONS SAUVEGARDÉES</span><h3>Prêts pour la prochaine partie.</h3></div><button type="button" class="secondary-button" onclick="switchTab('builder')"><i class="fa-solid fa-plus" aria-hidden="true"></i> Composer un deck</button></div>
+            <div id="favorite-decks-grid" class="favorite-library"></div>
+            <div id="no-favorites-state" class="hidden interface-empty"><i class="fa-regular fa-star" aria-hidden="true"></i><h3>Une place pour tes meilleurs trios.</h3><p>Compose un deck dans l’atelier et enregistre-le ici.</p><button type="button" class="workspace-add-button" onclick="switchTab('builder')">Ouvrir l’atelier</button></div>
+        </section>
+
+        <section id="section-minecards" class="tab-section hidden space-y-6" aria-label="Connexion MineCards">
+            <div class="mc-connection glass-panel">
+                <div><span class="eyebrow">MINECARDS → TA COLLECTION LOCALE</span><h3>Ta collection, connectée.</h3><p id="mc-status" role="status" aria-live="polite">Chargement de la connexion…</p></div>
+                <button id="mc-sync-button" type="button" class="workspace-add-button" onclick="mcSync()"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Synchroniser maintenant</button>
+                <div class="mc-connection-note"><p>Les cartes disponibles sont lues depuis MineCards. Tes cartes locales et tes favoris restent conservés. Les achats, échanges et ouvertures de boosters s’effectuent sur le site MineCards.</p><p>API 1.1 : la puissance utilise directement le champ officiel « power ». Les valeurs locales d’attaque et de défense sont conservées. Les totaux des favoris sont recalculés ; les quantités excluent les exemplaires réservés.</p><label><input id="mc-auto-sync" type="checkbox" checked onchange="mcSetAutoSync()"> Actualiser toutes les 2 minutes pendant que cette application est ouverte.</label></div>
+                <details class="mc-credentials"><summary>Gérer la connexion</summary><form onsubmit="mcConnect(event)"><label for="mc-api-key">Nouvelle clé personnelle MineCards</label><div><input type="password" id="mc-api-key" autocomplete="off" placeholder="mc_live_…" required><button type="submit" class="secondary-button">Enregistrer la connexion</button></div><small>La clé est conservée dans un fichier privé du serveur. Elle n’est jamais renvoyée au navigateur.</small></form><button type="button" class="text-link" onclick="mcDisconnect()">Déconnecter MineCards</button></details>
+            </div>
+            <div class="mc-explorer glass-panel">
+                <div class="library-heading"><div><span class="eyebrow">TOUTES LES LECTURES DE L’API V1</span><h3>Explorer MineCards</h3></div><a href="https://minecards.vercel.app/developpeurs" target="_blank" rel="noopener noreferrer" class="text-link">Documentation officielle <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></div>
+                <form id="mc-explorer-form" class="mc-explorer-filters" onsubmit="event.preventDefault();mcPage=1;mcExplore()">
+                    <label>Rubrique<select id="mc-resource" onchange="mcResourceChanged()"><option value="collection">Ma collection distante</option><option value="cards">Catalogue</option><option value="boosters">Mes boosters</option><option value="profiles">Profils publics</option><option value="arenas">Arènes</option><option value="auctions">Enchères</option><option value="leaderboard">Classement</option></select></label>
+                    <label data-mc-filter="q">Recherche<input id="mc-q" maxlength="100" placeholder="Nom ou identifiant…"></label>
+                    <label data-mc-filter="rarity">Rareté<select id="mc-rarity"><option value="">Toutes</option><option>CHARBON</option><option>CUIVRE</option><option>FER</option><option>OR</option><option>DIAMANT</option><option>NETHERITE</option></select></label>
+                    <label data-mc-filter="category">Catégorie<input id="mc-category" maxlength="100" placeholder="Valeur de catégorie"></label>
+                    <label data-mc-filter="dimension">Dimension<input id="mc-dimension" maxlength="100" placeholder="Valeur de dimension"></label>
+                    <label data-mc-filter="status" class="hidden">Statut<select id="mc-auction-status"><option value="ALL">Tous</option><option value="ACTIVE">Active</option><option value="SOLD">Vendue</option><option value="EXPIRED">Expirée</option><option value="CANCELLED">Annulée</option></select></label>
+                    <label data-mc-filter="limit">Par page<select id="mc-limit"><option>25</option><option>50</option><option>100</option></select></label>
+                    <button type="submit" class="workspace-add-button">Afficher</button>
+                </form>
+                <p id="mc-explorer-message" class="settings-message" role="status" aria-live="polite"></p>
+                <div id="mc-results" class="mc-results"><p>Choisis une rubrique puis clique sur « Afficher ».</p></div>
+                <div id="mc-pagination" class="mc-pagination"><button type="button" id="mc-prev" class="secondary-button" onclick="mcChangePage(-1)" disabled>Page précédente</button><span id="mc-page">Page 1</span><button type="button" id="mc-next" class="secondary-button" onclick="mcChangePage(1)" disabled>Page suivante</button></div>
+                <div id="mc-detail" class="hidden"><div class="library-heading"><h3>Fiche détaillée</h3><button type="button" class="secondary-button" onclick="document.getElementById('mc-detail').classList.add('hidden')">Fermer la fiche</button></div><div id="mc-detail-content"></div></div>
+            </div>
+        </section>
+        <section id="section-profile" class="tab-section hidden profile-layout" aria-label="Mon profil">
+            <aside class="profile-summary glass-panel">
+                <div class="profile-banner"><img id="profile-preview-banner" alt="Bannière du profil" hidden><span class="profile-banner-label"><i class="fa-solid fa-cubes-stacked" aria-hidden="true"></i> LE CARNET D’UN COLLECTIONNEUR</span></div>
+                <div class="profile-summary-identity">
+                <div id="profile-preview-avatar" class="profile-avatar" data-accent="lime"><i class="fa-solid fa-cube" aria-hidden="true"></i></div>
+                <h3 id="profile-preview-name"></h3><p id="profile-preview-bio"></p><small id="profile-account-info"></small>
+                <div id="profile-member-meta" class="profile-member-meta"></div>
+                <div class="profile-hero-actions"><button class="secondary-button" type="button" onclick="switchTab('collection')"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Ma collection</button><button class="workspace-add-button" type="button" onclick="openProfileCustomization()"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Personnaliser</button></div>
+                </div>
+                <div id="profile-collection-stats" class="profile-collection-stats"></div>
+            </aside>
+            <div id="profile-showcase" class="profile-showcase-grid"></div>
+            <div class="profile-settings-grid" id="profile-settings-panel">
+                <div class="profile-settings glass-panel">
+                    <h3>Ton identité</h3><p>Personnalise ta photo, ta bannière et ta présentation. Ton identifiant de connexion reste le même.</p>
+                    <form id="profile-settings-form" class="settings-form" onsubmit="saveProfileSettings(event)">
+                        <label>Nom affiché<input id="settings-display-name" name="displayName" maxlength="40" required oninput="previewProfileSettings()" autocomplete="nickname"></label>
+                        <label>Deck favori à mettre en avant<select id="settings-featured-deck" name="featuredDeckId" onchange="renderProfileShowcase()"><option value="">Dernier favori enregistré</option></select></label>
+                        <div class="settings-pair profile-media-fields">
+                            <div><label>Photo de profil<input id="settings-avatar-image" type="file" accept="image/jpeg,image/png,image/webp" onchange="chooseProfileImage(event,'avatarImage')"></label><button type="button" class="profile-media-reset" onclick="clearProfileImage('avatarImage')">Utiliser un avatar</button></div>
+                            <div><label>Bannière<input id="settings-banner-image" type="file" accept="image/jpeg,image/png,image/webp" onchange="chooseProfileImage(event,'bannerImage')"></label><button type="button" class="profile-media-reset" onclick="clearProfileImage('bannerImage')">Retirer la bannière</button></div>
+                        </div>
+                        <small>JPG, PNG ou WebP · 10 Mo maximum par fichier. Les images sont recadrées au centre et compressées automatiquement.</small>
+                        <div class="settings-pair">
+                            <label>Avatar<select id="settings-avatar" name="avatar" onchange="clearProfileImage('avatarImage')"><option value="cube">Cube</option><option value="dragon">Dragon</option><option value="leaf">Feuille</option><option value="shield">Bouclier</option><option value="wizard">Mage</option><option value="paw">Patte</option><option value="gem">Diamant</option><option value="bolt">Éclair</option></select></label>
+                            <label>Couleur de l’avatar<select id="settings-accent" name="accent" onchange="previewProfileSettings()"><option value="lime">Lime</option><option value="amber">Ambre</option><option value="cyan">Cyan</option><option value="violet">Violet</option></select></label>
+                        </div>
+                        <label>Présentation<textarea id="settings-bio" name="bio" maxlength="240" placeholder="Quelques mots sur toi et ta collection…" oninput="previewProfileSettings()"></textarea></label>
+                        <small>240 caractères maximum. L’aperçu suit tes modifications. Clique sur « Enregistrer mon profil » pour les sauvegarder.</small>
+                        <button type="submit" class="workspace-add-button">Enregistrer mon profil</button>
+                        <p id="profile-settings-message" class="settings-message" role="status" aria-live="polite"></p>
+                    </form>
+                </div>
+                <div class="profile-settings glass-panel">
+                    <h3>Changer de mot de passe</h3><p>Après modification, tes autres sessions seront déconnectées. Tu resteras connecté ici.</p>
+                    <form id="password-settings-form" class="settings-form" onsubmit="changeProfilePassword(event)">
+                        <label>Mot de passe actuel<input name="currentPassword" type="password" autocomplete="current-password" maxlength="128" required></label>
+                        <label>Nouveau mot de passe<input name="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+                        <label>Confirmer le nouveau mot de passe<input name="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+                        <small>Entre 10 et 128 caractères. Aucun email n’est nécessaire.</small>
+                        <button type="submit" class="workspace-add-button">Modifier mon mot de passe</button>
+                        <p id="password-settings-message" class="settings-message" role="status" aria-live="polite"></p>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <section id="section-admin" class="tab-section hidden space-y-6" aria-labelledby="admin-heading">
+            <div class="admin-heading glass-panel">
+                <div class="admin-emblem"><i class="fa-solid fa-shield-halved"></i></div>
+                <div><p class="admin-kicker">ESPACE SÉCURISÉ</p><h2 id="admin-heading">Administration</h2><p class="text-xs text-gray-400 mt-1">Vue d’ensemble des profils et de leurs collections.</p></div>
+            </div>
+            <div id="admin-stats" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+            <div class="admin-layout">
+                <div class="admin-users-panel glass-panel">
+                    <div class="admin-list-heading"><div><h3>Profils</h3><p>Comptes enregistrés sur ce serveur</p></div><input id="admin-search" type="search" placeholder="Rechercher un profil…" oninput="renderAdminUsers()"></div>
+                    <div id="admin-users-list" class="admin-users-list"></div>
+                </div>
+                <div id="admin-user-detail" class="admin-detail glass-panel"><div class="admin-empty"><i class="fa-solid fa-users"></i><h3>Sélectionne un profil</h3><p>Choisis un compte pour consulter sa collection et ses decks.</p></div></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal d'Ajout / Édition de Carte -->
+    <div id="card-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-md rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-tcg-border">
+            <div class="px-6 py-5 border-b border-tcg-border flex justify-between items-center bg-tcg-surfaceHover/50">
+                <h3 id="modal-title" class="font-gaming text-base font-bold text-white">Ajouter une carte</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form id="card-form" onsubmit="saveCard(event)" class="p-6 space-y-5 overflow-y-auto">
+                <input type="hidden" id="card-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Nom de la carte</label>
+                    <input type="text" id="card-nom" required class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-4 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm font-medium" placeholder="Ex: Chevalier Dragon">
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Puissance</label>
+                        <input type="number" id="card-valeur" required class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-3 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm font-semibold" placeholder="100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Attaque</label>
+                        <input type="number" id="card-attaque" required class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-3 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm font-semibold" placeholder="50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Défense</label>
+                        <input type="number" id="card-defense" required class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-3 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm font-semibold" placeholder="50">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Rareté</label>
+                    <select id="card-rarete" class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-4 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm font-semibold">
+                        <option value="Netherite">Netherite</option>
+                        <option value="Diamant">Diamant</option>
+                        <option value="Or">Or</option>
+                        <option value="Fer">Fer</option>
+                        <option value="Cuivre">Cuivre</option>
+                        <option value="Charbon">Charbon</option>
+                    </select>
+                </div>
+
+                <div class="border-t border-tcg-border pt-5 space-y-3">
+                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Visuel de la carte</label>
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-1.5"><i class="fa-solid fa-upload mr-1"></i> Fichier image local</label>
+                        <input type="file" id="card-file-input" accept="image/*" onchange="handleFileSelect(event)" class="w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-1.5"><i class="fa-solid fa-link mr-1"></i> Lien URL direct</label>
+                        <input type="text" id="card-image-url" oninput="handleUrlInput(event)" class="w-full bg-tcg-base border border-tcg-border text-gray-100 px-4 py-3 rounded-2xl focus:outline-none focus:border-emerald-500 text-xs" placeholder="https://exemple.com/image.jpg">
+                    </div>
+                    <div id="image-preview-container" class="hidden relative h-36 rounded-2xl overflow-hidden border border-tcg-border bg-tcg-base flex items-center justify-center">
+                        <img id="image-preview" src="" alt="Aperçu" class="w-full h-full object-cover">
+                        <button type="button" onclick="removeSelectedImage()" class="absolute top-2 right-2 bg-red-950/80 hover:bg-red-900 text-red-300 p-2 rounded-xl text-xs shadow border border-red-900/50"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-5 border-t border-tcg-border">
+                    <button type="button" onclick="closeModal()" class="bg-tcg-border hover:bg-tcg-surfaceHover text-gray-300 px-5 py-3 rounded-2xl text-xs font-semibold transition-all">Annuler</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-gaming text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-900/40 transition-all">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <footer class="glass-panel border-t border-tcg-border py-8 text-center text-xs text-gray-500 flex flex-col items-center gap-2">
+        <div class="flex items-center gap-2 text-gray-400 font-gaming font-semibold">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> MineCards - TCG Master Platform
+        </div>
+        <p>Profil sauvegardé sur ce serveur local · Cartes et decks isolés par compte</p>
+    </footer>
+
+    <!-- Scripts et Données -->
+    <script src="/profile-media.js"></script>
+    <script src="/profile-showcase.js"></script>
+    <script>
+
+
+        let cards = [];
+        let favoriteDecks = [];
+        let currentGeneratedDeck = null;
+        let currentImageData = "";
+        let activeProfile = null;
+        let profileSaveQueue = Promise.resolve();
+        let adminUsers = [];
+        let selectedAdminUserId = null;
+
+        function applySidebarState(collapsed) {
+            document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
+            const button = document.getElementById('sidebar-toggle');
+            const label = collapsed ? 'Développer la barre latérale' : 'Réduire la barre latérale';
+            button.setAttribute('aria-expanded', String(!collapsed));
+            button.setAttribute('aria-label', label);
+            button.title = label;
+            button.querySelector('i').className = 'fa-solid fa-angles-left';
+            button.querySelector('span').textContent = collapsed ? 'Développer la barre' : 'Réduire la barre';
+        }
+
+        let sidebarAnimations = [];
+        let sidebarMotionId = 0;
+        function toggleSidebar() {
+            const root = document.documentElement;
+            const collapsed = !root.classList.contains('sidebar-collapsed');
+            const desktop = window.matchMedia('(min-width:768px)').matches;
+            const motionId = ++sidebarMotionId;
+            const header = document.querySelector('header.glass-panel');
+            const main = document.querySelector('main');
+            const footer = document.querySelector('footer');
+            const rect = element => {
+                const box = element.getBoundingClientRect();
+                return {left:box.left,top:box.top,width:box.width,height:box.height,bottom:box.bottom};
+            };
+            const visible = box => box.height > 0 && box.width > 0 && box.bottom > -60 && box.top < window.innerHeight + 60;
+            const content = [...main.querySelectorAll('.workspace-toolbar,.collection-overview,.library-heading,.library-filters,.collection-card,.saved-deck,.profile-summary,.profile-deck-panel,.profile-rarity-panel,.profile-highlight-panel,.profile-settings,.builder-console,.admin-users-panel,.admin-detail,.mc-connection,.mc-explorer')];
+            const shells = [main,footer].filter(Boolean);
+            const masks = [header,...document.querySelectorAll('#sidebar-navigation .tab-button,#sidebar-account-actions > button')];
+            const labels = [...document.querySelectorAll('.sidebar-brand-text,.sidebar-tab-label,.sidebar-toggle-label,#sidebar-account-actions > .logout-button span')];
+            const beforeMain = rect(main);
+            const beforeContent = content.map(rect);
+            const beforeShells = shells.map(rect);
+            const beforeMasks = masks.map(element => getComputedStyle(element).clipPath);
+            const beforeLabels = labels.map(element => getComputedStyle(element).opacity);
+            const arrow = document.querySelector('#sidebar-toggle > i');
+            const beforeArrow = getComputedStyle(arrow).transform;
+            sidebarAnimations.forEach(animation => animation.cancel());
+            sidebarAnimations = [];
+            root.classList.add('sidebar-in-motion');
+            applySidebarState(collapsed);
+            try { localStorage.setItem('mc-sidebar-collapsed', collapsed ? '1' : '0'); } catch {}
+            if (!desktop || typeof header.animate !== 'function') {
+                root.classList.remove('sidebar-in-motion');
+                return;
+            }
+            // Toutes les nouvelles positions sont lues après un unique changement de disposition.
+            const afterMain = rect(main);
+            const afterContent = content.map(rect);
+            const afterShells = shells.map(rect);
+            const afterMasks = masks.map(element => getComputedStyle(element).clipPath);
+            const afterLabels = labels.map(element => getComputedStyle(element).opacity);
+            const afterArrow = getComputedStyle(arrow).transform;
+            const duration = 360;
+            const easing = 'cubic-bezier(.22,.75,.2,1)';
+            const play = (element,frames,options={}) => {
+                sidebarAnimations.push(element.animate(frames,{duration,easing,...options}));
+            };
+            shells.forEach((element,index) => {
+                const dx=beforeShells[index].left-afterShells[index].left;
+                const dy=beforeShells[index].top-afterShells[index].top;
+                if(dx || dy)play(element,[{transform:'translate3d('+dx+'px,'+dy+'px,0)'},{transform:'none'}]);
+            });
+            // Seuls les éléments visibles reçoivent une animation sur le compositeur.
+            content.forEach((element,index) => {
+                const before=beforeContent[index],after=afterContent[index];
+                if(!before.width || !after.width || (!visible(before) && !visible(after)))return;
+                const dx=(before.left-beforeMain.left)-(after.left-afterMain.left);
+                const dy=(before.top-beforeMain.top)-(after.top-afterMain.top);
+                const sx=before.width/after.width,sy=before.height/after.height;
+                if(Math.abs(dx)+Math.abs(dy)+Math.abs(1-sx)+Math.abs(1-sy)<.01)return;
+                play(element,[
+                    {transformOrigin:'0 0',transform:'translate3d('+dx+'px,'+dy+'px,0) scale('+sx+','+sy+')'},
+                    {transformOrigin:'0 0',transform:'none'}
+                ]);
+            });
+            masks.forEach((element,index) => {
+                if(beforeMasks[index]!==afterMasks[index])play(element,[{clipPath:beforeMasks[index]},{clipPath:afterMasks[index]}]);
+            });
+            labels.forEach((element,index) => {
+                if(beforeLabels[index]!==afterLabels[index])play(element,[{opacity:beforeLabels[index]},{opacity:afterLabels[index]}],{duration:collapsed?130:210,delay:collapsed?0:70,fill:'backwards'});
+            });
+            play(arrow,[{transform:beforeArrow},{transform:afterArrow}]);
+            Promise.allSettled(sidebarAnimations.map(animation=>animation.finished)).then(() => {
+                if(sidebarMotionId===motionId) {
+                    root.classList.remove('sidebar-in-motion');
+                    sidebarAnimations=[];
+                }
+            });
+        }
+        window.addEventListener('resize', () => {
+            sidebarMotionId++;
+            sidebarAnimations.forEach(animation=>animation.cancel());
+            sidebarAnimations=[];
+            document.documentElement.classList.remove('sidebar-in-motion');
+        }, {passive:true});
+
+        applySidebarState(document.documentElement.classList.contains('sidebar-collapsed'));
+        requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.add('sidebar-ready')));
+
+        async function apiRequest(path, options = {}) {
+            const response = await fetch(path, { credentials:'same-origin', ...options, headers:{ ...(options.body ? { 'Content-Type':'application/json' } : {}), ...(options.headers || {}) } });
+            if (!(response.headers.get('content-type') || '').includes('application/json')) {
+                throw Object.assign(new Error('Le serveur ouvert est une ancienne version. Ferme sa fenêtre puis relance Lancer.cmd pour activer les profils.'), { status:response.status, outdatedServer:true });
+            }
+            let result = {};
+            try { result = await response.json(); } catch (error) { /* Le serveur a renvoyé une réponse sans JSON. */ }
+            if (!response.ok) throw Object.assign(new Error(result.error || 'La requête a échoué.'), { status:response.status });
+            return result;
+        }
+
+        function setAuthMessage(message, success = false) {
+            const node = document.getElementById('auth-message');
+            node.textContent = message;
+            node.classList.toggle('success', success);
+        }
+
+        function showAuthForm(mode) {
+            const login = mode === 'login';
+            document.getElementById('login-form').classList.toggle('hidden', !login);
+            document.getElementById('register-form').classList.toggle('hidden', login);
+            document.getElementById('auth-login-tab').classList.toggle('active', login);
+            document.getElementById('auth-register-tab').classList.toggle('active', !login);
+            document.getElementById('auth-title').textContent = login ? 'Ta collection, ton profil' : 'Créer ton profil';
+            document.getElementById('auth-subtitle').textContent = login ? 'Connecte-toi pour retrouver tes cartes et tes decks favoris.' : 'Choisis un identifiant et un mot de passe pour garder ta collection privée.';
+            setAuthMessage('');
+        }
+
+        function showAuthScreen() {
+            activeProfile = null;
+            document.body.classList.add('auth-loading');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            showAuthForm('login');
+        }
+
+        function showProfileScreen(user) {
+            activeProfile = user;
+            document.getElementById('profile-name').textContent = user.profile?.displayName || user.username;
+            paintProfileAvatar(document.getElementById('profile-chip'), user.profile?.avatarImage, user.profile?.avatar);
+            const identityIcon = document.querySelector('#profile-chip i');
+            if (identityIcon) identityIcon.style.color = profileAccentColors[user.profile?.accent] || '#b8ed80';
+            document.getElementById('tab-admin').classList.toggle('hidden', user.role !== 'admin');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.body.classList.remove('auth-loading');
+        }
+
+        async function submitAuth(event, mode) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const submit = form.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            submit.style.opacity = '.65';
+            setAuthMessage(mode === 'login' ? 'Connexion…' : 'Création du profil…', true);
+            const fields = new FormData(form);
+            try {
+                const result = await apiRequest(mode === 'login' ? '/api/login' : '/api/register', {
+                    method:'POST', body:JSON.stringify({ username:fields.get('username'), password:fields.get('password') })
+                });
+                form.reset();
+                await loadProfile(result.user);
+            } catch (error) {
+                setAuthMessage(error.message);
+            } finally {
+                submit.disabled = false;
+                submit.style.opacity = '';
+            }
+        }
+
+        async function loadProfile(user) {
+            const result = await apiRequest('/api/data');
+            const data = result.data && typeof result.data === 'object' ? {
+                cards:Array.isArray(result.data.cards) ? result.data.cards : [],
+                favoriteDecks:Array.isArray(result.data.favoriteDecks) ? result.data.favoriteDecks : []
+            } : { cards:[], favoriteDecks:[] };
+            if (!result.data || !Array.isArray(result.data.cards) || !Array.isArray(result.data.favoriteDecks)) {
+                await apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) });
+            }
+            cards = data.cards;
+            favoriteDecks = data.favoriteDecks;
+            currentGeneratedDeck = null;
+            localStorage.setItem('tcg_cards', JSON.stringify(cards));
+            localStorage.setItem('minecard_tcg_cards_v3', JSON.stringify(cards));
+            localStorage.setItem('tcg_favorite_decks', JSON.stringify(favoriteDecks));
+            filterAndRenderCards();
+            renderFavoriteDecks();
+            showProfileScreen(user);
+            switchTab('collection');
+            mcInit();
+        }
+
+        function switchTab(tabName) {
+            if (tabName === 'admin' && activeProfile?.role !== 'admin') return;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+            
+            document.getElementById('tab-' + tabName)?.classList.add('active');
+            const profileButton = document.getElementById('profile-chip');
+            profileButton.classList.toggle('active', tabName === 'profile');
+            if (tabName === 'profile') profileButton.setAttribute('aria-current', 'page');
+            else profileButton.removeAttribute('aria-current');
+            document.getElementById('section-' + tabName).classList.remove('hidden');
+            const pageLabels = {
+                collection:['Ma collection', 'Tes cartes, tes découvertes, ta prochaine stratégie.'],
+                builder:['L’atelier de decks', 'Trouve la combinaison idéale pour ta puissance cible.'],
+                decks:['Mes decks favoris', 'Garde tes meilleures combinaisons à portée de main.'],
+                profile:['Mon profil', 'Ton identité, ton avatar et les réglages de ton compte.'],
+                minecards:['MineCards connecté', 'Collection synchronisée et exploration de l’univers MineCards.'],
+                admin:['Administration', 'Consulte les profils et gère leurs collections.']
+            };
+            const [title, description] = pageLabels[tabName];
+            document.getElementById('workspace-title').textContent = title + '.';
+            document.getElementById('workspace-description').textContent = description;
+            if (tabName === 'decks') renderFavoriteDecks();
+            if (tabName === 'admin') renderAdminPanel();
+            if (tabName === 'profile') fillProfileSettings();
+            if (tabName === 'minecards') mcShow();
+            window.scrollTo({top:0, behavior:'instant'});
+        }
+
+        const profileAvatarIcons = { cube:'fa-cube', dragon:'fa-dragon', leaf:'fa-leaf', shield:'fa-shield-halved', wizard:'fa-hat-wizard', paw:'fa-paw', gem:'fa-gem', bolt:'fa-bolt' };
+        const profileAccentColors = { lime:'#b8ed80', amber:'#f2c66c', cyan:'#7cdeea', violet:'#c4a4f0' };
+
+        function profileSettingsMessage(id, message, success = false) {
+            const node = document.getElementById(id);
+            node.textContent = message;
+            node.classList.toggle('success', success);
+        }
+
+        function fillProfileSettings() {
+            if (!activeProfile) return;
+            const profile = activeProfile.profile || {};
+            resetProfileMedia(profile);
+            fillProfileFeaturedDeck(profile.featuredDeckId || '');
+            document.getElementById('settings-display-name').value = profile.displayName || activeProfile.username;
+            document.getElementById('settings-avatar').value = profile.avatar || 'cube';
+            document.getElementById('settings-accent').value = profile.accent || 'lime';
+            document.getElementById('settings-bio').value = profile.bio || '';
+            document.getElementById('profile-account-info').textContent = 'Identifiant : ' + activeProfile.username + ' · ' + (activeProfile.role === 'admin' ? 'Administrateur' : 'Membre');
+            document.getElementById('password-settings-form').reset();
+            profileSettingsMessage('profile-settings-message', '');
+            profileSettingsMessage('password-settings-message', '');
+            previewProfileSettings();
+        }
+
+        function previewProfileSettings() {
+            const avatar = document.getElementById('profile-preview-avatar');
+            avatar.dataset.accent = document.getElementById('settings-accent').value;
+            paintProfileAvatar(avatar, profileMediaDraft.avatarImage, document.getElementById('settings-avatar').value);
+            const banner = document.getElementById('profile-preview-banner');
+            banner.hidden = !profileMediaDraft.bannerImage;
+            if (profileMediaDraft.bannerImage) banner.src = profileMediaDraft.bannerImage;
+            else banner.removeAttribute('src');
+            document.getElementById('profile-preview-name').textContent = document.getElementById('settings-display-name').value.trim() || activeProfile?.username || '';
+            document.getElementById('profile-preview-bio').textContent = document.getElementById('settings-bio').value.trim() || 'Ta collection raconte ton aventure.';
+            renderProfileShowcase();
+        }
+
+        async function saveProfileSettings(event) {
+            event.preventDefault();
+            if (profileMediaPending) return;
+            const form = event.currentTarget;
+            const button = form.querySelector('[type="submit"]');
+            button.disabled = true;
+            profileSettingsMessage('profile-settings-message', 'Enregistrement…', true);
+            try {
+                const result = await apiRequest('/api/profile', { method:'PATCH', body:JSON.stringify({...Object.fromEntries(new FormData(form)), ...profileMediaDraft}) });
+                showProfileScreen(result.user);
+                resetProfileMedia(result.user.profile);
+                document.getElementById('settings-display-name').value = result.user.profile.displayName;
+                document.getElementById('settings-bio').value = result.user.profile.bio;
+                previewProfileSettings();
+                profileSettingsMessage('profile-settings-message', 'Ton profil a été enregistré.', true);
+            } catch (error) { profileSettingsMessage('profile-settings-message', error.message); }
+            finally { button.disabled = false; }
+        }
+
+        async function changeProfilePassword(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const values = Object.fromEntries(new FormData(form));
+            if (values.newPassword !== values.confirmPassword) {
+                profileSettingsMessage('password-settings-message', 'Les nouveaux mots de passe ne correspondent pas.');
+                return;
+            }
+            const button = form.querySelector('[type="submit"]');
+            button.disabled = true;
+            profileSettingsMessage('password-settings-message', 'Modification…', true);
+            try {
+                await apiRequest('/api/password', { method:'PUT', body:JSON.stringify(values) });
+                form.reset();
+                profileSettingsMessage('password-settings-message', 'Mot de passe modifié. Tes autres sessions ont été déconnectées.', true);
+            } catch (error) { profileSettingsMessage('password-settings-message', error.message); }
+            finally { button.disabled = false; }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+        }
+
+        async function renderAdminPanel() {
+            const list = document.getElementById('admin-users-list');
+            try {
+                const result = await apiRequest('/api/admin/users');
+                adminUsers = result.users;
+                const totalCards = adminUsers.reduce((sum, user) => sum + user.cardCount, 0);
+                const totalDecks = adminUsers.reduce((sum, user) => sum + user.favoriteDeckCount, 0);
+                document.getElementById('admin-stats').innerHTML = [
+                    ['fa-users','Profils',adminUsers.length],
+                    ['fa-clone','Cartes différentes',totalCards],
+                    ['fa-star','Decks favoris',totalDecks]
+                ].map(([icon,label,value]) => `<div class="glass-panel p-5 rounded-2xl"><div class="flex items-center gap-3"><i class="fa-solid ${icon} text-lime-300"></i><span class="text-xs text-gray-400">${label}</span></div><strong class="block mt-3 font-gaming text-2xl text-white">${value}</strong></div>`).join('');
+                renderAdminUsers();
+                if (selectedAdminUserId && adminUsers.some(user => user.id === selectedAdminUserId)) await openAdminUser(selectedAdminUserId);
+                else if (adminUsers.length) await openAdminUser(adminUsers[0].id);
+            } catch (error) {
+                list.innerHTML = `<div class="admin-no-records">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function renderAdminUsers() {
+            const list = document.getElementById('admin-users-list');
+            if (!list) return;
+            const query = (document.getElementById('admin-search')?.value || '').trim().toLowerCase();
+            const filtered = adminUsers.filter(user => user.username.toLowerCase().includes(query));
+            list.innerHTML = filtered.length ? filtered.map(user => `
+                <button class="admin-user-row ${selectedAdminUserId === user.id ? 'selected' : ''}" type="button" onclick="openAdminUser('${escapeHtml(user.id)}')">
+                    <span><strong>${escapeHtml(user.username)}</strong><small>${user.role === 'admin' ? 'Administrateur' : 'Membre'}</small></span>
+                    <span class="admin-user-count">${user.cardCount} cartes différentes</span>
+                </button>`).join('') : '<div class="admin-no-records">Aucun profil trouvé.</div>';
+        }
+
+        async function openAdminUser(userId) {
+            selectedAdminUserId = userId;
+            renderAdminUsers();
+            const detail = document.getElementById('admin-user-detail');
+            detail.innerHTML = '<div class="admin-empty"><i class="fa-solid fa-spinner fa-spin"></i><h3>Chargement du profil…</h3></div>';
+            try {
+                const result = await apiRequest('/api/admin/users/' + encodeURIComponent(userId));
+                const cards = Array.isArray(result.data.cards) ? result.data.cards : [];
+                const decks = Array.isArray(result.data.favoriteDecks) ? result.data.favoriteDecks : [];
+                const createdAt = result.user.createdAt ? new Date(result.user.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue';
+                detail.innerHTML = `
+                    <div class="admin-detail-header"><div><h3>${escapeHtml(result.user.username)}</h3><p>Profil créé le ${escapeHtml(createdAt)}</p></div><span class="admin-role-badge">${result.user.role === 'admin' ? 'Admin' : 'Membre'}</span></div>
+                    ${result.user.id !== activeProfile.id && result.user.role !== 'admin' ? `<button class="admin-delete-button admin-delete-account" type="button" onclick="adminDeleteAccount('${escapeHtml(result.user.id)}','${escapeHtml(result.user.username)}')"><i class="fa-solid fa-user-xmark mr-1"></i> Supprimer ce compte</button>` : ''}
+                    <div class="admin-data-section"><h4>Collection · ${cards.length} carte(s) différente(s)</h4><label class="admin-collection-search" for="admin-card-search">Rechercher dans cette collection<input id="admin-card-search" type="search" placeholder="Nom, rareté ou puissance…" oninput="filterAdminCollection(this)" autocomplete="off"></label><p id="admin-card-search-count" class="admin-search-count" role="status" aria-live="polite">${cards.length} carte(s) affichée(s) sur ${cards.length}</p><div id="admin-card-search-empty" class="admin-no-records" hidden>Aucune carte ne correspond à ta recherche.</div><div class="admin-record-list">${cards.length ? cards.map(card => `<div class="admin-record admin-collection-record" data-search="${escapeHtml(card.nom+' '+card.rarete+' '+card.valeur)}"><span class="admin-record-main">${escapeHtml(card.nom)} <small class="text-gray-500">${escapeHtml(card.rarete)}</small></span><div class="admin-record-actions"><span>${escapeHtml(card.valeur)} pts</span>${card._minecards && Number(card.id) < 0 ? '<span class="text-xs text-gray-500" title="Carte synchronisée : la collection MineCards est accessible en lecture seule.">MineCards</span>' : `<button class="admin-delete-button" type="button" aria-label="Supprimer ${escapeHtml(card.nom)}" onclick="adminDeleteRecord('${escapeHtml(result.user.id)}','cards','${escapeHtml(card.id)}',this)"><i class="fa-solid fa-trash"></i></button>`}</div></div>`).join('') : '<div class="admin-no-records">Ce profil n’a pas encore ajouté de carte.</div>'}</div></div>
+                    <div class="admin-data-section"><h4>Decks favoris · ${decks.length}</h4><div class="admin-record-list">${decks.length ? decks.map(deck => `<div class="admin-record"><span class="admin-record-main">${escapeHtml(deck.name)} <small class="text-gray-500">${(Array.isArray(deck.cards) ? deck.cards : []).map(card => escapeHtml(card.nom)).join(' · ')}</small></span><div class="admin-record-actions"><span>${escapeHtml(deck.totalPower)} pts</span><button class="admin-delete-button" type="button" aria-label="Supprimer le deck ${escapeHtml(deck.name)}" onclick="adminDeleteRecord('${escapeHtml(result.user.id)}','decks','${escapeHtml(deck.id)}',this)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('') : '<div class="admin-no-records">Aucun deck favori.</div>'}</div></div>`;
+            } catch (error) {
+                detail.innerHTML = `<div class="admin-no-records">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function adminDeleteAccount(userId, username) {
+            if (!confirm(`Supprimer définitivement le compte « ${username} » et toutes ses cartes et ses decks favoris ? Cette action est irréversible.`)) return;
+            try {
+                await apiRequest('/api/admin/users/' + encodeURIComponent(userId), { method:'DELETE' });
+                selectedAdminUserId = null;
+                await renderAdminPanel();
+            } catch (error) { alert(error.message); }
+        }
+
+        async function adminDeleteRecord(userId, collection, recordId, button) {
+            const label = button.closest('.admin-record')?.querySelector('.admin-record-main')?.textContent.trim() || 'élément sélectionné';
+            const kind = collection === 'cards' ? 'carte' : 'deck favori';
+            if (!confirm(`Supprimer ${kind} « ${label} » du profil sélectionné ? Cette action est irréversible.`)) return;
+            try {
+                await apiRequest(`/api/admin/users/${encodeURIComponent(userId)}/${collection}/${encodeURIComponent(recordId)}`, { method:'DELETE' });
+                await renderAdminPanel();
+            } catch (error) { alert(error.message); }
+        }
+
+        async function initStorage() {
+            try {
+                const result = await apiRequest('/api/me');
+                if (!result.user) throw new Error('La réponse du serveur ne contient pas de profil. Redémarre Lancer.cmd.');
+                await loadProfile(result.user);
+            } catch (error) {
+                showAuthScreen();
+                if (error.status !== 401) setAuthMessage(error.message);
+            }
+        }
+
+        function saveCardsStorage() {
+            try {
+                localStorage.setItem('tcg_cards', JSON.stringify(cards));
+                localStorage.setItem('minecard_tcg_cards_v3', JSON.stringify(cards));
+            } catch (e) { alert("Stockage local plein."); }
+            saveProfileData();
+        }
+
+        function saveDecksStorage() {
+            localStorage.setItem('tcg_favorite_decks', JSON.stringify(favoriteDecks));
+            saveProfileData();
+        }
+
+        function saveProfileData() {
+            if (!activeProfile) return;
+            const data = { cards:JSON.parse(JSON.stringify(cards)), favoriteDecks:JSON.parse(JSON.stringify(favoriteDecks)) };
+            profileSaveQueue = profileSaveQueue.then(() => apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) }))
+                .catch(error => { console.error('Sauvegarde du profil impossible :', error); });
+        }
+
+        async function logoutProfile() {
+            mcStop();
+            await profileSaveQueue;
+            try { await apiRequest('/api/logout', { method:'POST', body:'{}' }); } catch (error) { console.error(error); }
+            localStorage.removeItem('tcg_cards');
+            localStorage.removeItem('minecard_tcg_cards_v3');
+            localStorage.removeItem('tcg_favorite_decks');
+            cards = [];
+            favoriteDecks = [];
+            currentGeneratedDeck = null;
+            showAuthScreen();
+        }
+
+        function resetData() {
+            if (confirm("Vider les cartes locales et les decks favoris de ce profil ? Les cartes du compte MineCards distant ne seront pas supprimées et resteront disponibles à la prochaine actualisation.")) {
+                cards = [];
+                favoriteDecks = [];
+                saveCardsStorage();
+                saveDecksStorage();
+                filterAndRenderCards();
+            }
+        }
+
+        function getRarityBadgeClass(rarete) {
+            switch(rarete) {
+                case 'Netherite': return 'bg-purple-950/80 text-purple-300 border-purple-800/80';
+                case 'Diamant': return 'bg-sky-950/80 text-sky-300 border-sky-800/80';
+                case 'Or': return 'bg-amber-950/80 text-amber-300 border-amber-800/80';
+                case 'Fer': return 'bg-slate-800/80 text-slate-300 border-slate-700/80';
+                case 'Cuivre': return 'bg-orange-950/80 text-orange-300 border-orange-800/80';
+                case 'Charbon': return 'bg-zinc-900/80 text-zinc-400 border-zinc-700/80';
+                default: return 'bg-slate-800/80 text-slate-300 border-slate-700/80';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').innerText = cards.length;
+            if (cards.length > 0) {
+                const avgPower = Math.round(cards.reduce((acc, c) => acc + (Number(c.valeur) || 0), 0) / cards.length);
+                const avgDef = Math.round(cards.reduce((acc, c) => acc + (Number(c.defense) || 0), 0) / cards.length);
+                const rareCount = cards.filter(c => c.rarete === 'Netherite' || c.rarete === 'Diamant').length;
+                document.getElementById('stat-avg-power').innerText = avgPower;
+                document.getElementById('stat-rare').innerText = rareCount;
+                document.getElementById('stat-avg-def').innerText = avgDef;
+            } else {
+                document.getElementById('stat-avg-power').innerText = 0;
+                document.getElementById('stat-rare').innerText = 0;
+                document.getElementById('stat-avg-def').innerText = 0;
+            }
+        }
+
+        function filterAndRenderCards() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const rarity = document.getElementById('rarity-filter').value;
+            const sort = document.getElementById('sort-select').value;
+
+            let result = cards.filter(card => {
+                const matchesSearch = card.nom.toLowerCase().includes(search);
+                const matchesRarity = rarity === 'all' || card.rarete === rarity;
+                return matchesSearch && matchesRarity;
+            });
+
+            result.sort((a, b) => {
+                if (sort === 'valeur-desc') return (Number(b.valeur) || 0) - (Number(a.valeur) || 0);
+                if (sort === 'valeur-asc') return (Number(a.valeur) || 0) - (Number(b.valeur) || 0);
+                if (sort === 'nom-asc') return a.nom.localeCompare(b.nom);
+                if (sort === 'nom-desc') return b.nom.localeCompare(a.nom);
+                if (sort === 'attaque-desc') return (Number(b.attaque) || 0) - (Number(a.attaque) || 0);
+                if (sort === 'defense-desc') return (Number(b.defense) || 0) - (Number(a.defense) || 0);
+                return 0;
+            });
+
+            const countElem = document.getElementById('rarity-count-val');
+            if (countElem) countElem.innerText = result.length;
+
+            renderCards(result);
+            updateStats();
+        }
+
+        function createCardHtml(card, showActions = true) {
+            const badgeClass = getRarityBadgeClass(card.rarete);
+            const icons = {Netherite:'fa-dragon', Diamant:'fa-gem', Or:'fa-sun', Fer:'fa-shield-halved', Cuivre:'fa-cube', Charbon:'fa-mountain'};
+            const tones = {Netherite:'netherite', Diamant:'diamond', Or:'gold', Fer:'iron', Cuivre:'copper', Charbon:'coal'};
+            const name = escapeHtml(card.nom);
+            const visual = card.image && String(card.image).trim()
+                ? `<img src="${escapeHtml(card.image)}" alt="${name}" loading="lazy">`
+                : `<div class="card-art-placeholder" aria-hidden="true"><span class="card-art-orbit"></span><i class="fa-solid ${icons[card.rarete] || 'fa-cube'}"></i></div>`;
+            return `
+                <article class="collection-card tone-${tones[card.rarete] || 'iron'}">
+                    <div class="card-art">${visual}<span class="card-number">${card._minecards ? 'MINECARDS · ×'+escapeHtml(card._minecards.quantity) : '#'+escapeHtml(String(card.id).padStart(3,'0'))}</span></div>
+                    <div class="card-identity"><span class="card-rarity ${badgeClass}">${escapeHtml(card.rarete)}</span><h4 title="${name}">${name}</h4></div>
+                    <dl class="card-numbers"><div class="card-power"><dt>Puissance</dt><dd>${escapeHtml(card.valeur)}</dd></div><div><dt><i class="fa-solid fa-bolt" aria-hidden="true"></i> Attaque</dt><dd>${escapeHtml(card.attaque ?? 50)}</dd></div><div><dt><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Défense</dt><dd>${escapeHtml(card.defense ?? 50)}</dd></div></dl>
+                    ${showActions ? (Number(card.id)<0&&card._minecards ? `<div class="card-controls"><button type="button" onclick="switchTab('minecards')"><i class="fa-solid fa-link" aria-hidden="true"></i> Gérée sur MineCards · ×${escapeHtml(card._minecards.quantity)}</button></div>` : `<div class="card-controls"><button type="button" onclick="openEditModal(${Number(card.id)})"><i class="fa-solid fa-pen" aria-hidden="true"></i> Modifier</button><button type="button" onclick="deleteCard(${Number(card.id)})" aria-label="Supprimer ${name}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button></div>`) : ''}
+                </article>`;
+        }
+
+        function setCollectionView(view) {
+            const list = view === 'list';
+            document.getElementById('cards-grid').classList.toggle('list-view', list);
+            for (const [id, selected] of [['view-grid',!list],['view-list',list]]) {
+                const button = document.getElementById(id);
+                button.classList.toggle('selected', selected);
+                button.setAttribute('aria-pressed', String(selected));
+            }
+        }
+
+        function resetCollectionFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('rarity-filter').value = 'all';
+            document.getElementById('sort-select').value = 'valeur-desc';
+            filterAndRenderCards();
+        }
+
+        function renderCards(list) {
+            const grid = document.getElementById('cards-grid');
+            const emptyState = document.getElementById('empty-state');
+            grid.innerHTML = '';
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                list.forEach(card => grid.insertAdjacentHTML('beforeend', createCardHtml(card, true)));
+            }
+        }
+
+        function generateDeck() {
+            const target = Number(document.getElementById('target-power').value);
+            if (!target || target <= 0) { alert("Veuillez entrer une puissance cible valide !"); return; }
+            const bestDeck = findBestDeck(cards,target);
+            if (!bestDeck) { alert('Il faut au moins trois cartes différentes disponibles pour créer un deck.'); return; }
+            currentGeneratedDeck = bestDeck;
+            displayGeneratedDeck(bestDeck);
+        }
+
+        function distinctDeckCards(collection) {
+            const remoteIds=new Set(),localIds=new Set(),names=new Set();
+            return collection.filter(card=>{
+                if(card._minecards && !(Number(card._minecards.quantity)>0))return false;
+                const remoteId=card._minecards?.cardId;
+                const localId=card.id==null?null:String(card.id);
+                const name=String(card.nom||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
+                if((remoteId&&remoteIds.has(remoteId))||(localId!==null&&localIds.has(localId))||(name&&names.has(name)))return false;
+                if(remoteId)remoteIds.add(remoteId);
+                if(localId!==null)localIds.add(localId);
+                if(name)names.add(name);
+                return true;
+            });
+        }
+
+        function findBestDeck(collection,target) {
+            const candidates=distinctDeckCards(collection).sort((a,b)=>(Number(a.valeur)||0)-(Number(b.valeur)||0));
+            let best=null;
+            for(let i=0;i<candidates.length-2;i++){
+                let left=i+1,right=candidates.length-1;
+                while(left<right){
+                    const trio=[candidates[i],candidates[left],candidates[right]];
+                    const sum=trio.reduce((total,card)=>total+(Number(card.valeur)||0),0),diff=Math.abs(target-sum);
+                    if(!best||diff<best.diff)best={cards:trio,totalPower:sum,targetPower:target,diff};
+                    if(diff===0)return best;
+                    if(sum<target)left++;else right--;
+                }
+            }
+            return best;
+        }
+
+        function displayGeneratedDeck(deck) {
+            document.getElementById('builder-empty-state').classList.add('hidden');
+            const container = document.getElementById('generated-deck-container');
+            container.classList.remove('hidden');
+            const badge = document.getElementById('deck-status-badge');
+            if (deck.diff === 0) {
+                badge.className = "inline-block px-3.5 py-1 rounded-full text-xs font-gaming font-bold mb-2 bg-emerald-950 text-emerald-300 border border-emerald-800";
+                badge.innerText = "🎯 Puissance exacte atteinte !";
+            } else {
+                badge.className = "inline-block px-3.5 py-1 rounded-full text-xs font-gaming font-bold mb-2 bg-teal-950 text-teal-300 border border-teal-800";
+                badge.innerText = "Écart de " + deck.diff + " pts avec la cible";
+            }
+            document.getElementById('deck-title-display').innerText = "Deck de 3 Cartes (Total : " + deck.totalPower + ")";
+            document.getElementById('deck-summary-text').innerText = "Puissance demandée : " + deck.targetPower + " | Obtenue : " + deck.totalPower;
+            document.getElementById('deck-name-input').value = "Deck Puissance " + deck.totalPower;
+
+            const grid = document.getElementById('deck-cards-grid');
+            grid.innerHTML = '';
+            deck.cards.forEach(card => grid.insertAdjacentHTML('beforeend', createCardHtml(card, false)));
+        }
+
+        function saveCurrentDeckToFavorites() {
+            if (!currentGeneratedDeck) return;
+            if(currentGeneratedDeck.cards.length!==3||distinctDeckCards(currentGeneratedDeck.cards).length!==3){alert('Un deck doit contenir trois cartes différentes. Génère un nouveau deck avant de l’enregistrer.');return;}
+            const customName = document.getElementById('deck-name-input').value.trim() || ("Deck " + currentGeneratedDeck.totalPower);
+            const newFav = {
+                id: Date.now(),
+                name: customName,
+                totalPower: currentGeneratedDeck.totalPower,
+                targetPower: currentGeneratedDeck.targetPower,
+                cards: currentGeneratedDeck.cards,
+                createdAt: new Date().toLocaleDateString('fr-FR')
+            };
+            favoriteDecks.unshift(newFav);
+            saveDecksStorage();
+            alert('Le deck "' + customName + '" a été ajouté à vos favoris avec succès !');
+        }
+
+        function renderFavoriteDecks() {
+            renderProfileShowcase();
+            const grid = document.getElementById('favorite-decks-grid');
+            const emptyState = document.getElementById('no-favorites-state');
+            grid.innerHTML = '';
+            if (favoriteDecks.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            favoriteDecks.forEach(deck => {
+                const deckEl = document.createElement('div');
+                deckEl.className = 'saved-deck';
+                const cardsMiniHtml = deck.cards.map((c,index) => `<li><span class="saved-card-index">0${index+1}</span><span><strong>${escapeHtml(c.nom)}</strong><small>${escapeHtml(c.rarete)}</small></span><b>${escapeHtml(c.valeur)}<small>pts</small></b></li>`).join('');
+                deckEl.innerHTML = `
+                    <div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-regular fa-star" aria-hidden="true"></i></span><div><span class="eyebrow">COMBINAISON FAVORITE</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>puissance</small></div></div>
+                    <ol class="saved-deck-cards">${cardsMiniHtml}</ol>
+                    <div class="saved-deck-footer"><span>Enregistré le ${escapeHtml(deck.createdAt)}</span><button type="button" onclick="deleteFavoriteDeck(${Number(deck.id)})" aria-label="Supprimer le deck ${escapeHtml(deck.name)}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Supprimer</button></div>`;
+                grid.appendChild(deckEl);
+            });
+        }
+
+        function deleteFavoriteDeck(deckId) {
+            if (confirm("Voulez-vous supprimer ce deck de vos favoris ?")) {
+                favoriteDecks = favoriteDecks.filter(d => d.id !== deckId);
+                saveDecksStorage();
+                renderFavoriteDecks();
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width, height = img.height, maxDim = 500;
+                    if (width > height) { if (width > maxDim) { height *= maxDim / width; width = maxDim; } }
+                    else { if (height > maxDim) { width *= maxDim / height; height = maxDim; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    currentImageData = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('card-image-url').value = '';
+                    showPreview(currentImageData);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleUrlInput(event) {
+            const url = event.target.value.trim();
+            if (url) { currentImageData = url; document.getElementById('card-file-input').value = ''; showPreview(url); }
+            else { removeSelectedImage(); }
+        }
+
+        function showPreview(src) {
+            const container = document.getElementById('image-preview-container');
+            document.getElementById('image-preview').src = src;
+            container.classList.remove('hidden');
+        }
+
+        function removeSelectedImage() {
+            currentImageData = "";
+            document.getElementById('card-file-input').value = "";
+            document.getElementById('card-image-url').value = "";
+            document.getElementById('image-preview-container').classList.add('hidden');
+            document.getElementById('image-preview').src = "";
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "Ajouter une nouvelle carte";
+            document.getElementById('card-form').reset();
+            document.getElementById('card-id').value = '';
+            removeSelectedImage();
+            document.getElementById('card-modal').classList.remove('hidden');
+        }
+
+        function openEditModal(id) {
+            const card = cards.find(c => c.id === id);
+            if (!card) return;
+            document.getElementById('modal-title').innerText = "Modifier la carte";
+            document.getElementById('card-id').value = card.id;
+            document.getElementById('card-nom').value = card.nom;
+            document.getElementById('card-valeur').value = card.valeur;
+            document.getElementById('card-attaque').value = card.attaque || 50;
+            document.getElementById('card-defense').value = card.defense || 50;
+            document.getElementById('card-rarete').value = card.rarete;
+            if (card.image) {
+                currentImageData = card.image;
+                if (card.image.startsWith('http')) document.getElementById('card-image-url').value = card.image;
+                showPreview(card.image);
+            } else { removeSelectedImage(); }
+            document.getElementById('card-modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('card-modal').classList.add('hidden'); }
+
+        function saveCard(event) {
+            event.preventDefault();
+            const id = document.getElementById('card-id').value;
+            const nom = document.getElementById('card-nom').value;
+            const valeur = Number(document.getElementById('card-valeur').value);
+            const attaque = Number(document.getElementById('card-attaque').value);
+            const defense = Number(document.getElementById('card-defense').value);
+            const rarete = document.getElementById('card-rarete').value;
+            const image = currentImageData;
+
+            if (id) {
+                const index = cards.findIndex(c => c.id == id);
+                if (index !== -1) cards[index] = { id: Number(id), nom, valeur, attaque, defense, rarete, image };
+            } else {
+                const newId = Math.max(0, ...cards.map(c => Number(c.id)||0)) + 1;
+                cards.push({ id: newId, nom, valeur, attaque, defense, rarete, image });
+            }
+            saveCardsStorage();
+            closeModal();
+            filterAndRenderCards();
+        }
+
+        function deleteCard(id) {
+            if (confirm("Supprimer cette carte de la collection ?")) {
+                cards = cards.filter(c => c.id !== id);
+                saveCardsStorage();
+                filterAndRenderCards();
+            }
+        }
+
+        window.addEventListener('load', initStorage);
+    </script>
+    <script src="/minecards-ui.js"></script>
+</body>
+</html>

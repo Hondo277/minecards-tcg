@@ -1,0 +1,25 @@
+# Données privées, sauvegardes et récupération
+/data/
+**/accounts.json
+**/accounts.json.tmp
+**/minecards-connections.json
+**/minecards-connections.json.tmp
+
+# Variables et configuration locale
+.env
+.env.*
+!.env.example
+/.vercel/
+
+# Fichiers générés et dépendances
+/public/
+node_modules/
+*.log
+coverage/
+
+# Outils locaux
+/.agents/
+/.claude/
+/skills-lock.json
+.DS_Store
+Thumbs.db
