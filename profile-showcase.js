@@ -8,12 +8,11 @@ function fillProfileFeaturedDeck(value) {
 }
 
 function profilePower(card) {
-    const value=Number(card.valeur);
-    return Number.isFinite(value)?value:0;
+    return deckPower(card)??0;
 }
 
 function strongestProfileCards() {
-    return distinctDeckCards([...cards].sort((a,b)=>profilePower(b)-profilePower(a))).slice(0,3);
+    return distinctDeckCards(cards).sort((a,b)=>profilePower(b)-profilePower(a)).slice(0,3);
 }
 
 function profileCardArt(card) {
@@ -35,7 +34,9 @@ function openStrongestProfileDeck() {
     const trio=strongestProfileCards();
     if (trio.length!==3) return;
     const total=trio.reduce((sum,card)=>sum+profilePower(card),0);
-    currentGeneratedDeck={cards:trio,totalPower:total,targetPower:total,diff:0};
+    document.getElementById('deck-mode').value='strongest';
+    builderModeChanged();
+    currentGeneratedDeck={cards:trio,totalPower:total,targetPower:total,diff:0,mode:'strongest'};
     document.getElementById('target-power').value=total;
     displayGeneratedDeck(currentGeneratedDeck);
     document.getElementById('deck-name-input').value='Mon trio le plus puissant';

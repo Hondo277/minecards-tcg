@@ -44,6 +44,7 @@ function updateCardPowers(user,catalog) {
         const source=byId.get(card._minecards?.cardId||LEGACY_CARD_IDS[normalize(card.nom)])||byName.get(normalize(card.nom));
         if(!source||!Number.isSafeInteger(source.power)){missing++;return;}
         if(card.valeur!==source.power){card.valeur=source.power;updated++;}
+        if(card._minecards)card._minecards.power=source.power;
     };
     for(const card of user.data?.cards||[])refresh(card);
     for(const card of user.minecards?.cards||[])refresh(card);
@@ -63,7 +64,7 @@ function collectionData(user) {
     const byRemoteId = new Map(cards.map(card=>[card._minecards?.cardId || LEGACY_CARD_IDS[normalize(card.nom)],card]).filter(([id])=>id));
     for (const remote of user.minecards?.cards || []) {
         const existing = byRemoteId.get(remote._minecards.cardId) || matches.get(normalize(remote.nom));
-        if (existing) { existing._minecards = remote._minecards;if(remote.image)existing.image=remote.image; }
+        if (existing) { existing._minecards = remote._minecards;existing.valeur=remote.valeur;if(remote.image)existing.image=remote.image; }
         else cards.push({...remote});
     }
     return {...local,cards};
@@ -162,7 +163,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
                 const c=item.card,attack=Number(c.attack)||0,defense=Number(c.defense)||0;
                 const prior=previousCards.get(item.cardId);
                 if(!Number.isSafeInteger(c.power))throw fail(502,'La puissance officielle manque dans une carte MineCards. La synchronisation est annulée pour conserver les valeurs précédentes.');
-                return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity}};
+                return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity,power:c.power}};
             });
             user.minecards={cards:imported,syncedAt:new Date().toISOString()};
             updateCardImages(user,[...owned.values()].map(item=>item.card));

@@ -386,18 +386,24 @@
         <section id="section-builder" class="tab-section hidden" aria-label="Atelier de decks">
             <div class="builder-layout">
                 <div class="builder-console glass-panel">
-                    <span class="eyebrow">01 / TA STRATÉGIE</span><div class="console-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div><h3>Le bon trio.<br>La bonne puissance.</h3><p>Choisis une puissance cible. L’atelier cherche les trois cartes dont la somme s’en rapproche le plus.</p>
-                    <label for="target-power">Puissance cible</label><input type="number" id="target-power" min="1" placeholder="350">
-                    <button type="button" onclick="generateDeck()" class="workspace-add-button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Composer mon deck</button>
+                    <span class="eyebrow">01 / TA STRATÉGIE</span><div class="console-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div><h3>Le bon trio.<br>La bonne puissance.</h3><p>Compose avec tes cartes disponibles et leur dernière puissance synchronisée depuis MineCards.</p>
+                    <form id="deck-builder-form" class="builder-controls" onsubmit="event.preventDefault();generateDeck()">
+                        <label for="deck-mode">Objectif<select id="deck-mode" onchange="builderModeChanged()"><option value="closest">Au plus proche de la cible</option><option value="ceiling">Sans dépasser le plafond</option><option value="strongest">Trio le plus puissant</option></select></label>
+                        <label for="target-power"><span id="target-power-label">Puissance cible</span><input type="number" id="target-power" min="1" max="1000000000" step="1" placeholder="350" required></label>
+                        <button id="generate-deck-button" type="submit" class="workspace-add-button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Composer mon deck</button>
+                    </form>
+                    <p id="builder-availability" class="builder-availability"></p>
+                    <p id="builder-message" class="settings-message" role="status" aria-live="polite"></p>
                     <div class="console-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Un deck contient trois cartes différentes. Une carte ne peut être utilisée qu’une fois, quel que soit ton stock.</span></div>
+                    <details class="builder-api-note"><summary>Comment la puissance est-elle calculée ?</summary><p>MineCards définit la puissance d’une carte par attaque + ⌊défense × 0,65⌋, sans bonus aléatoire. Pour une carte synchronisée, l’atelier utilise directement sa puissance officielle. Tes anciennes valeurs d’attaque et de défense restent conservées.</p><p>Le champ « active » indique la présence dans les boosters : une carte possédée inactive reste utilisable. Les exemplaires réservés sont exclus du stock fourni par MineCards.</p><a href="https://minecards.vercel.app/developpeurs" target="_blank" rel="noopener noreferrer">Documentation MineCards ↗</a></details>
                 </div>
                 <div class="builder-workspace">
                     <div class="library-heading"><div><span class="eyebrow">02 / LE RÉSULTAT</span><h3>Ta table de jeu</h3></div></div>
                     <div id="builder-empty-state" class="builder-placeholder"><div class="deck-placeholders" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div><h3>À toi de jouer.</h3><p>Ton prochain deck commence par une puissance cible.</p></div>
                     <div id="generated-deck-container" class="hidden space-y-6">
-                        <div class="deck-result-info"><div id="deck-status-badge"></div><h3 id="deck-title-display">Deck généré</h3><p id="deck-summary-text"></p></div>
+                        <div class="deck-result-info"><div id="deck-status-badge"></div><h3 id="deck-title-display">Deck généré</h3><p id="deck-summary-text"></p><dl id="deck-result-stats" class="deck-result-stats"></dl></div>
                         <div id="deck-cards-grid" class="deck-table-grid"></div>
-                        <div class="deck-save-bar"><label for="deck-name-input">Garder cette combinaison<input type="text" id="deck-name-input" placeholder="Le nom de ton deck…"></label><button type="button" onclick="saveCurrentDeckToFavorites()" class="workspace-add-button"><i class="fa-regular fa-star" aria-hidden="true"></i> Enregistrer en favori</button></div>
+                        <div class="deck-save-bar"><label for="deck-name-input">Garder cette combinaison<input type="text" id="deck-name-input" maxlength="120" placeholder="Le nom de ton deck…"></label><button id="save-generated-deck" type="button" onclick="saveCurrentDeckToFavorites()" class="workspace-add-button"><i class="fa-regular fa-star" aria-hidden="true"></i> Enregistrer en favori</button></div>
                     </div>
                 </div>
             </div>
@@ -802,6 +808,7 @@
             if (tabName === 'admin') renderAdminPanel();
             if (tabName === 'profile') fillProfileSettings();
             if (tabName === 'minecards') mcShow();
+            if (tabName === 'builder') updateBuilderState();
             window.scrollTo({top:0, behavior:'instant'});
         }
 
@@ -975,16 +982,17 @@
             saveProfileData();
         }
 
-        function saveDecksStorage() {
+        function saveDecksStorage(confirmSave=false) {
             localStorage.setItem('tcg_favorite_decks', JSON.stringify(favoriteDecks));
-            saveProfileData();
+            return saveProfileData(confirmSave);
         }
 
-        function saveProfileData() {
+        function saveProfileData(confirmSave=false) {
             if (!activeProfile) return;
             const data = { cards:JSON.parse(JSON.stringify(cards)), favoriteDecks:JSON.parse(JSON.stringify(favoriteDecks)) };
-            profileSaveQueue = profileSaveQueue.then(() => apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) }))
-                .catch(error => { console.error('Sauvegarde du profil impossible :', error); });
+            const saving=profileSaveQueue.then(() => apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) }));
+            profileSaveQueue=saving.catch(error => { console.error('Sauvegarde du profil impossible :', error); });
+            return confirmSave?saving:profileSaveQueue;
         }
 
         async function logoutProfile() {
@@ -1064,6 +1072,7 @@
 
             renderCards(result);
             updateStats();
+            updateBuilderState();
         }
 
         function createCardHtml(card, showActions = true) {
@@ -1113,38 +1122,63 @@
         }
 
         function generateDeck() {
+            const mode=document.getElementById('deck-mode').value;
             const target = Number(document.getElementById('target-power').value);
-            if (!target || target <= 0) { alert("Veuillez entrer une puissance cible valide !"); return; }
-            const bestDeck = findBestDeck(cards,target);
-            if (!bestDeck) { alert('Il faut au moins trois cartes différentes disponibles pour créer un deck.'); return; }
+            if (mode!=='strongest'&&(!Number.isSafeInteger(target)||target<=0||target>1000000000)) { builderMessage('Saisis une puissance entière entre 1 et 1 000 000 000.'); return; }
+            const bestDeck = findBestDeck(cards,target,mode);
+            if (!bestDeck) {
+                clearGeneratedDeck();
+                builderMessage(distinctDeckCards(cards).length<3?'Il faut au moins trois cartes différentes disponibles. Synchronise ta collection dans « MineCards connecté ».':'Aucun trio ne respecte ce plafond. Augmente-le ou choisis la recherche au plus proche.');
+                return;
+            }
+            builderMessage('');
             currentGeneratedDeck = bestDeck;
             displayGeneratedDeck(bestDeck);
         }
 
-        function distinctDeckCards(collection) {
-            const remoteIds=new Set(),localIds=new Set(),names=new Set();
-            return collection.filter(card=>{
-                if(card._minecards && !(Number(card._minecards.quantity)>0))return false;
-                const remoteId=card._minecards?.cardId;
-                const localId=card.id==null?null:String(card.id);
-                const name=String(card.nom||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
-                if((remoteId&&remoteIds.has(remoteId))||(localId!==null&&localIds.has(localId))||(name&&names.has(name)))return false;
-                if(remoteId)remoteIds.add(remoteId);
-                if(localId!==null)localIds.add(localId);
-                if(name)names.add(name);
-                return true;
-            });
+        function deckName(card) { return String(card.nom||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' '); }
+        function deckRemoteId(card) {
+            return card._minecards?.cardId||({'cheval z':'zombie_horse','piglin z':'zombified_piglin','illusionnistes':'illusioner','debris antique':'ancient_debris'}[deckName(card)])||null;
+        }
+        function deckIdentity(card) { return deckRemoteId(card)?'remote:'+deckRemoteId(card):'name:'+deckName(card); }
+        function deckPower(card) {
+            const value=card._minecards&&Number.isSafeInteger(card._minecards.power)?card._minecards.power:card.valeur;
+            if(value===null||value===''||value===undefined)return null;
+            const power=Number(value);
+            return Number.isSafeInteger(power)&&power>=0?power:null;
         }
 
-        function findBestDeck(collection,target) {
-            const candidates=distinctDeckCards(collection).sort((a,b)=>(Number(a.valeur)||0)-(Number(b.valeur)||0));
+        function distinctDeckCards(collection) {
+            const eligible=collection.filter(card=>{
+                if(!card||typeof card!=='object'||!deckName(card)||deckPower(card)===null)return false;
+                if(card._minecards && !(Number(card._minecards.quantity)>0))return false;
+                return true;
+            });
+            const remoteNames=new Set(eligible.filter(card=>card._minecards?.cardId).map(deckName));
+            const seen=new Set();
+            return eligible.sort((a,b)=>Number(!!b._minecards)-Number(!!a._minecards)).filter(card=>{
+                if(!card._minecards?.cardId&&remoteNames.has(deckName(card)))return false;
+                const identity=deckIdentity(card);
+                if(seen.has(identity))return false;
+                seen.add(identity);return true;
+            }).map(card=>({...card,valeur:deckPower(card)}));
+        }
+
+        function findBestDeck(collection,target,mode='closest') {
+            const candidates=distinctDeckCards(collection).sort((a,b)=>a.valeur-b.valeur||deckIdentity(a).localeCompare(deckIdentity(b)));
+            if(candidates.length<3)return null;
+            if(mode==='strongest'){
+                const trio=candidates.slice(-3).reverse(),total=trio.reduce((sum,card)=>sum+card.valeur,0);
+                return {cards:trio,totalPower:total,targetPower:total,diff:0,mode};
+            }
             let best=null;
             for(let i=0;i<candidates.length-2;i++){
                 let left=i+1,right=candidates.length-1;
                 while(left<right){
                     const trio=[candidates[i],candidates[left],candidates[right]];
                     const sum=trio.reduce((total,card)=>total+(Number(card.valeur)||0),0),diff=Math.abs(target-sum);
-                    if(!best||diff<best.diff)best={cards:trio,totalPower:sum,targetPower:target,diff};
+                    const better=mode==='ceiling'?sum<=target&&(!best||sum>best.totalPower):!best||diff<best.diff||(diff===best.diff&&sum<=target&&best.totalPower>target);
+                    if(better)best={cards:trio,totalPower:sum,targetPower:target,diff,mode};
                     if(diff===0)return best;
                     if(sum<target)left++;else right--;
                 }
@@ -1152,20 +1186,58 @@
             return best;
         }
 
+        function builderMessage(message,success=false) {
+            const node=document.getElementById('builder-message');node.textContent=message;node.classList.toggle('success',success);
+        }
+        function clearGeneratedDeck() {
+            currentGeneratedDeck=null;
+            document.getElementById('generated-deck-container').classList.add('hidden');
+            document.getElementById('builder-empty-state').classList.remove('hidden');
+        }
+        function builderModeChanged() {
+            const mode=document.getElementById('deck-mode').value,input=document.getElementById('target-power');
+            input.disabled=mode==='strongest';input.required=mode!=='strongest';
+            document.getElementById('target-power-label').textContent=mode==='ceiling'?'Plafond de puissance':mode==='strongest'?'Puissance cible non nécessaire':'Puissance cible';
+            clearGeneratedDeck();builderMessage('');
+        }
+        function currentDeckCards(deck) {
+            const available=distinctDeckCards(cards),byId=new Map(available.map(card=>[deckIdentity(card),card]));
+            const resolved=(deck.cards||[]).map(card=>byId.get(deckIdentity(card)));
+            return resolved.length===3&&resolved.every(Boolean)&&distinctDeckCards(resolved).length===3?resolved:null;
+        }
+        function updateBuilderState() {
+            const available=distinctDeckCards(cards),ranked=[...available].sort((a,b)=>a.valeur-b.valeur);
+            const imported=available.filter(card=>card._minecards).length;
+            let text=available.length+' cartes différentes disponibles · '+imported+' synchronisées';
+            if(available.length>=3)text+=' · trios de '+ranked.slice(0,3).reduce((sum,card)=>sum+card.valeur,0)+' à '+ranked.slice(-3).reduce((sum,card)=>sum+card.valeur,0)+' pts';
+            document.getElementById('builder-availability').textContent=text+'.';
+            document.getElementById('generate-deck-button').disabled=available.length<3;
+            if(currentGeneratedDeck){
+                const latest=currentDeckCards(currentGeneratedDeck);
+                if(!latest||latest.some((card,index)=>card.valeur!==deckPower(currentGeneratedDeck.cards[index]))){
+                    clearGeneratedDeck();builderMessage('Ta collection a changé. Compose à nouveau le deck avec les cartes et puissances à jour.');
+                }
+            }
+        }
+
         function displayGeneratedDeck(deck) {
             document.getElementById('builder-empty-state').classList.add('hidden');
             const container = document.getElementById('generated-deck-container');
             container.classList.remove('hidden');
             const badge = document.getElementById('deck-status-badge');
-            if (deck.diff === 0) {
+            if (deck.mode==='strongest') {
+                badge.className='deck-badge-maximum';badge.innerText='Puissance maximale disponible';
+            } else if (deck.diff === 0) {
                 badge.className = "inline-block px-3.5 py-1 rounded-full text-xs font-gaming font-bold mb-2 bg-emerald-950 text-emerald-300 border border-emerald-800";
                 badge.innerText = "🎯 Puissance exacte atteinte !";
             } else {
                 badge.className = "inline-block px-3.5 py-1 rounded-full text-xs font-gaming font-bold mb-2 bg-teal-950 text-teal-300 border border-teal-800";
-                badge.innerText = "Écart de " + deck.diff + " pts avec la cible";
+                badge.innerText = deck.mode==='ceiling'?deck.diff+' pts sous le plafond':(deck.totalPower>deck.targetPower?'+':'−')+deck.diff+' pts par rapport à la cible';
             }
             document.getElementById('deck-title-display').innerText = "Deck de 3 Cartes (Total : " + deck.totalPower + ")";
-            document.getElementById('deck-summary-text').innerText = "Puissance demandée : " + deck.targetPower + " | Obtenue : " + deck.totalPower;
+            document.getElementById('deck-summary-text').innerText = deck.mode==='strongest'?'Les trois plus fortes puissances de ta collection disponible.':(deck.mode==='ceiling'?'Plafond : ':'Cible : ')+deck.targetPower+' pts · obtenue : '+deck.totalPower+' pts';
+            const imported=deck.cards.filter(card=>card._minecards).length;
+            document.getElementById('deck-result-stats').innerHTML=`<div><dt>Cartes différentes</dt><dd>3 / 3</dd></div><div><dt>Puissance du trio</dt><dd>${escapeHtml(deck.totalPower)} pts</dd></div><div><dt>Cartes synchronisées</dt><dd>${imported} / 3</dd></div>`;
             document.getElementById('deck-name-input').value = "Deck Puissance " + deck.totalPower;
 
             const grid = document.getElementById('deck-cards-grid');
@@ -1173,21 +1245,38 @@
             deck.cards.forEach(card => grid.insertAdjacentHTML('beforeend', createCardHtml(card, false)));
         }
 
-        function saveCurrentDeckToFavorites() {
+        async function saveCurrentDeckToFavorites() {
             if (!currentGeneratedDeck) return;
-            if(currentGeneratedDeck.cards.length!==3||distinctDeckCards(currentGeneratedDeck.cards).length!==3){alert('Un deck doit contenir trois cartes différentes. Génère un nouveau deck avant de l’enregistrer.');return;}
+            const button=document.getElementById('save-generated-deck');
+            if(button.disabled||!activeProfile)return;
+            const latest=currentDeckCards(currentGeneratedDeck);
+            if(!latest||latest.some((card,index)=>card.valeur!==deckPower(currentGeneratedDeck.cards[index]))){clearGeneratedDeck();builderMessage('Ce trio n’est plus disponible aux mêmes puissances. Compose un nouveau deck.');return;}
+            if(favoriteDecks.length>=500){builderMessage('La limite de 500 favoris est atteinte. Retire un favori avant de continuer.');return;}
             const customName = document.getElementById('deck-name-input').value.trim() || ("Deck " + currentGeneratedDeck.totalPower);
+            if(customName.length>120){builderMessage('Le nom du deck est limité à 120 caractères.');return;}
             const newFav = {
                 id: Date.now(),
                 name: customName,
                 totalPower: currentGeneratedDeck.totalPower,
                 targetPower: currentGeneratedDeck.targetPower,
-                cards: currentGeneratedDeck.cards,
+                mode: currentGeneratedDeck.mode||'closest',
+                cards: structuredClone(latest),
                 createdAt: new Date().toLocaleDateString('fr-FR')
             };
-            favoriteDecks.unshift(newFav);
-            saveDecksStorage();
-            alert('Le deck "' + customName + '" a été ajouté à vos favoris avec succès !');
+            const profileId=activeProfile.id;
+            button.disabled=true;favoriteDecks.unshift(newFav);
+            try{
+                await saveDecksStorage(true);
+                if(activeProfile?.id!==profileId)return;
+                builderMessage('Le deck « '+customName+' » a été ajouté aux favoris.',true);
+                renderFavoriteDecks();
+            }catch(error){
+                if(activeProfile?.id!==profileId)return;
+                favoriteDecks=favoriteDecks.filter(deck=>deck.id!==newFav.id);
+                try{localStorage.setItem('tcg_favorite_decks',JSON.stringify(favoriteDecks));}catch{}
+                builderMessage('Sauvegarde non confirmée : '+error.message);
+                renderFavoriteDecks();
+            }finally{button.disabled=false;}
         }
 
         function renderFavoriteDecks() {

@@ -23,7 +23,10 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 ### Créateur de decks
 
 - Recherche d’un trio dont la puissance totale est la plus proche de la cible saisie.
+- Mode plafond : meilleur total sans dépasser la limite ; mode maximum : trio le plus puissant disponible.
 - Exactement **trois cartes différentes** : aucun doublon dans un deck, même si plusieurs exemplaires sont possédés.
+- Puissance officielle `power` des cartes synchronisées ; les anciennes attaques / défenses ne sont pas recalculées.
+- Disponibilité contrôlée à la composition et à la sauvegarde ; un résultat devenu obsolète après synchronisation doit être recomposé.
 - Affichage de la puissance obtenue et de l’écart avec la cible.
 - Enregistrement, consultation et suppression des decks favoris.
 - Ouverture du trio le plus puissant dans l’atelier depuis le profil.

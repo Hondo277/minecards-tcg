@@ -402,3 +402,39 @@ body { overflow-x:clip; }
     #sidebar-account-actions > #sidebar-toggle,#sidebar-account-actions > .logout-button { width:auto!important;flex:1;justify-content:center!important; }
     .sidebar-collapsed .sidebar-tab-label,.sidebar-collapsed .sidebar-toggle-label { display:none; }
 }
+
+/* Atelier : objectifs et informations de disponibilité MineCards. */
+.builder-controls { display:grid;gap:15px;margin:22px 0 18px;min-width:0; }
+.builder-controls > label { display:grid;gap:8px;color:#bdc9de;font-size:11px;grid-column:auto!important;grid-row:auto!important; }
+.builder-controls select,.builder-controls input { width:100%;min-width:0;padding:13px 12px;border:1px solid #43526e;background:#121d30;color:#eef2f8;border-radius:10px;font:inherit; }
+.builder-controls input { font-size:25px; }
+.builder-controls input:disabled { opacity:.45;cursor:not-allowed; }
+.builder-controls :is(input,select):focus-visible { outline:2px solid #ffa58f;outline-offset:3px; }
+.builder-controls > button { justify-content:center;grid-column:auto;grid-row:auto; }
+.builder-console > .builder-availability { color:#b8c7de;font-size:11px;line-height:1.8;margin:16px 0 12px;grid-column:1;grid-row:auto; }
+.builder-console > #builder-message { min-height:0;color:#ffb6a7;margin:10px 0;grid-column:1;grid-row:auto; }
+.builder-console > #builder-message:empty { display:none; }
+.builder-console > #builder-message.success { color:#b8ed80; }
+.builder-api-note { margin-top:18px;color:#98aac8;font-size:10px;line-height:1.8;grid-column:1/-1; }
+.builder-api-note summary { cursor:pointer;color:#c4cfe1; }
+.builder-api-note p { margin-top:10px; }
+.builder-api-note a { display:inline-block;margin-top:10px;color:#ffb5a3;text-decoration:underline;text-underline-offset:3px; }
+.deck-result-stats { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0 5px; }
+.deck-result-stats > div { padding:14px 12px;background:#1b2940;border:1px solid #354660;border-radius:12px; }
+.deck-result-stats dt { font-size:10px;color:#a3b3cc; }
+.deck-result-stats dd { margin-top:7px;font-size:18px;color:#e6deff;font-weight:600; }
+.deck-badge-maximum { display:inline-block;padding:6px 12px;background:#bca3ef1c;border:1px solid #bca3ef55;border-radius:999px;color:#d5c2ff;font-size:11px; }
+@media(min-width:601px) and (max-width:1150px) {
+    .builder-console > .builder-controls { grid-column:2;grid-row:1/span 5;margin:0;align-self:start; }
+    .builder-console > p:not(.builder-availability):not(#builder-message) { grid-column:1;grid-row:auto; }
+    .builder-console > .console-note { grid-column:1/-1;grid-row:auto; }
+}
+@media(max-width:600px) {
+    .builder-controls { margin:20px 0; }
+    .deck-result-stats { gap:6px; }
+    .deck-result-stats > div { padding:11px 8px; }
+    .deck-result-stats dt { font-size:9px; }
+    .deck-result-stats dd { font-size:15px; }
+    .deck-save-bar { flex-wrap:wrap; }
+    .deck-save-bar label { flex-basis:100%; }
+}

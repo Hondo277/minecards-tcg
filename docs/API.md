@@ -24,7 +24,7 @@ Le navigateur conserve un cookie de session `HttpOnly`. Les appels authentifiés
 | GET | `/api/data` | Collection fusionnée et favoris du compte courant |
 | PUT | `/api/data` | Enregistrer `{ "data": { "cards": [], "favoriteDecks": [] } }` |
 
-Une carte utilise `id`, `nom`, `rarete`, `valeur`, `attaque`, `defense`, `image`. `valeur` désigne la puissance. Les cartes importées exposent `_minecards.cardId` et `_minecards.quantity`.
+Une carte utilise `id`, `nom`, `rarete`, `valeur`, `attaque`, `defense`, `image`. `valeur` désigne la puissance. Les cartes importées exposent `_minecards.cardId`, `_minecards.quantity` et, après synchronisation, `_minecards.power` (puissance officielle). Les favoris peuvent enregistrer le mode du créateur : `closest`, `ceiling` ou `strongest`.
 
 La sauvegarde filtre les cartes importées pour ne pas les transformer en cartes locales. Les favoris gardent leurs instantanés. Limites : 1 000 cartes locales et 500 decks par compte.
 

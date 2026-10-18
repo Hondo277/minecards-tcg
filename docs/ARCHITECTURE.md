@@ -64,7 +64,9 @@ Chaque liste est contrôlée : tableau, page et limite attendues, `hasMore` et `
 
 ## Decks et profil
 
-Le créateur trie les cartes distinctes puis cherche le trio le plus proche d’une cible avec un parcours à deux pointeurs. Sa complexité est quadratique après tri. Le trio maximal du profil sélectionne les trois cartes distinctes de puissance maximale.
+Le créateur trie les cartes distinctes puis cherche le trio le plus proche d’une cible avec un parcours à deux pointeurs. Sa complexité est quadratique après tri. À écart égal, le total sous la cible est préféré. Le mode plafond garde uniquement les sommes inférieures ou égales à la limite ; le mode maximum sélectionne les trois cartes différentes de puissance maximale, comme le profil.
+
+L’identité stable `_minecards.cardId` prime pour les cartes importées. Les noms normalisés servent aux anciennes cartes locales et à éviter leur duplication avec une carte importée. Deux identifiants distants distincts peuvent partager un nom. Les quantités nulles ou les puissances absentes / invalides sont exclues. `active` concerne les boosters et ne bloque pas une carte possédée. `_minecards.power` conserve la dernière puissance officielle, également reportée dans `valeur` ; l’attaque et la défense historiques restent inchangées. Les favoris utilisent des copies des cartes et leur enregistrement attend une confirmation serveur. Une modification de disponibilité ou de puissance invalide le résultat courant avant une nouvelle sauvegarde.
 
 Les favoris sont des instantanés de cartes avec nom, cible, total et date. Le favori mis en avant est référencé par son identifiant dans le profil ; le serveur vérifie son appartenance au compte.
 
