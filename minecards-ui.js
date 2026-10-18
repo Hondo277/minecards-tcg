@@ -1,9 +1,10 @@
 'use strict';
-let mcPage=1,mcHasMore=false,mcConfigured=false,mcBusy=false,mcTimer=null,mcGeneration=0,mcExploreSequence=0,mcLastSync=null;
+let mcPage=1,mcNextPage=null,mcHasMore=false,mcConfigured=false,mcBusy=false,mcTimer=null,mcGeneration=0,mcExploreSequence=0,mcLastSync=null;
 const mcFilters={cards:['q','rarity','category','dimension','limit'],collection:['q','rarity','category','dimension','limit'],boosters:[],profiles:['q','limit'],arenas:['limit'],auctions:['status','limit'],leaderboard:['limit']};
 const mcLabels={id:'Identifiant',cardId:'Carte',name:'Nom',nameEn:'Nom anglais',description:'Description',descriptionEn:'Description anglaise',category:'Catégorie',dimension:'Dimension',minecraftVersion:'Version Minecraft',rarity:'Rareté',attack:'Attaque',defense:'Défense',active:'Disponible dans les boosters',quantity:'Exemplaires disponibles',username:'Joueur',bio:'Présentation',premium:'MineCards+',showCollection:'Collection publique',showActivity:'Activité publique',createdAt:'Création',score:'Score',rank:'Rang',available:'Boosters disponibles',capacity:'Capacité',intervalSeconds:'Intervalle (secondes)',accruedAt:'Dernière acquisition',giftedStandard:'Dons classiques',giftedPremium:'Dons premium',nextAt:'Prochain booster',premiumAvailable:'Boosters premium disponibles',premiumNextAt:'Prochain premium',premiumIntervalSeconds:'Intervalle premium (secondes)',dailyPremiumAvailable:'Premium disponible (compatibilité)',serverTime:'Heure du serveur',badge:'Badge',champion:'Champion',startingPrice:'Prix de départ',currentBid:'Offre actuelle',status:'Statut enregistré',effectiveStatus:'Statut effectif',hasEnded:'Terminée',settled:'Règlement effectué',endsAt:'Fin',settledAt:'Date du règlement',seller:'Vendeur',highestBidder:'Meilleur enchérisseur',bidCount:'Nombre d’offres',showcaseCards:'Cartes exposées',showcaseBadges:'Badges exposés',collection:'Collection publique',activity:'Activité',avatarId:'Avatar',bannerId:'Bannière'};
 mcLabels.power='Puissance officielle';
 function mcMessage(message,success=false){const el=document.getElementById('mc-explorer-message');el.textContent=message;el.classList.toggle('success',success);}
+function mcErrorMessage(error){return error.message+(error.retryAfter?' Réessaie dans '+error.retryAfter+' secondes.':'');}
 function mcAutoEnabled(){try{return localStorage.getItem('mc-auto-'+activeProfile?.id)!=='false';}catch{return true;}}
 function mcSetAutoSync(){try{localStorage.setItem('mc-auto-'+activeProfile.id,String(document.getElementById('mc-auto-sync').checked));}catch{} }
 function mcStop(){mcGeneration++;mcExploreSequence++;if(mcTimer)clearInterval(mcTimer);mcTimer=null;mcConfigured=false;mcBusy=false;mcLastSync=null;document.getElementById('mc-api-key').value='';document.getElementById('mc-results').textContent='Choisis une rubrique puis clique sur « Afficher ».';document.getElementById('mc-detail').classList.add('hidden');}
@@ -14,6 +15,7 @@ function mcApplyStatus(state){
     if(state.lastSync)text+=state.uniqueCards+' cartes différentes · '+state.totalCards+' exemplaires disponibles · dernière copie le '+new Date(state.lastSync).toLocaleString('fr-FR')+'.';
     if(state.job?.running)text+=' Synchronisation en cours : '+state.job.pages+' page(s) lue(s).';
     if(state.job?.error)text+=' Dernier essai : '+state.job.error;
+    if(state.job?.retryAt&&Date.parse(state.job.retryAt)>Date.now())text+=' Nouvel essai possible à '+new Date(state.job.retryAt).toLocaleTimeString('fr-FR')+'.';
     document.getElementById('mc-status').textContent=text;
 }
 async function mcStatus(){const generation=mcGeneration;const state=await apiRequest('/api/minecards/status');if(generation!==mcGeneration)return null;mcApplyStatus(state);return state;}
@@ -30,7 +32,7 @@ async function mcShow(){try{await mcStatus();}catch(error){mcMessage(error.messa
 async function mcConnect(event){
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
     try{const state=await apiRequest('/api/minecards/connect',{method:'POST',body:JSON.stringify({key:document.getElementById('mc-api-key').value.trim()})});form.reset();mcApplyStatus(state);await mcSync();}
-    catch(error){mcMessage(error.message);}finally{button.disabled=false;}
+    catch(error){mcMessage(mcErrorMessage(error));}finally{button.disabled=false;}
 }
 async function mcDisconnect(){
     if(!confirm('Déconnecter la clé MineCards de ce profil ? La dernière copie de collection et tes cartes locales seront conservées.'))return;
@@ -54,16 +56,16 @@ async function mcSync(){
         while(generation===mcGeneration&&state.job?.running){mcApplyStatus(state);await new Promise(resolve=>setTimeout(resolve,2000));if(generation!==mcGeneration)return;state=await apiRequest('/api/minecards/status');}
         if(generation!==mcGeneration)return;
         mcApplyStatus(state);
-        if(state.job?.error)throw Error(state.job.error);
+        if(state.job?.error)throw Object.assign(Error(state.job.error),{retryAfter:state.job.retryAt?Math.max(0,Math.ceil((Date.parse(state.job.retryAt)-Date.now())/1000)):null});
         await mcReloadCollection(generation);
         mcMessage('Collection actualisée depuis MineCards. Les cartes locales et les favoris sont conservés.',true);
-    }catch(error){if(generation===mcGeneration){mcMessage(error.message);document.getElementById('mc-status').textContent=error.message;}}
+    }catch(error){if(generation===mcGeneration){mcMessage(mcErrorMessage(error));document.getElementById('mc-status').textContent=mcErrorMessage(error);}}
     finally{if(generation===mcGeneration){mcBusy=false;document.getElementById('mc-sync-button').disabled=!mcConfigured;}}
 }
 function mcResourceChanged(load=true){
     const resource=document.getElementById('mc-resource').value;
     for(const label of document.querySelectorAll('[data-mc-filter]'))label.classList.toggle('hidden',!mcFilters[resource].includes(label.dataset.mcFilter));
-    mcPage=1;mcHasMore=false;document.getElementById('mc-prev').disabled=true;document.getElementById('mc-next').disabled=true;document.getElementById('mc-page').textContent='Page 1';
+    mcPage=1;mcNextPage=null;mcHasMore=false;document.getElementById('mc-prev').disabled=true;document.getElementById('mc-next').disabled=true;document.getElementById('mc-page').textContent='Page 1';
     document.getElementById('mc-pagination').classList.toggle('hidden',resource==='boosters');
     document.getElementById('mc-detail').classList.add('hidden');
     if(load)void mcExplore();
@@ -100,13 +102,14 @@ async function mcExplore(){
         if(generation!==mcGeneration||sequence!==mcExploreSequence)return;
         const items=Array.isArray(result.data)?result.data:[result.data];
         document.getElementById('mc-results').innerHTML=items.length?items.map(item=>mcRecord(item,resource)).join(''):'<p>Aucun résultat pour ces filtres.</p>';
-        mcHasMore=!!result.pagination?.hasMore&&Number.isInteger(result.pagination?.nextPage);
+        mcNextPage=result.pagination?.nextPage;
+        mcHasMore=!!result.pagination?.hasMore&&Number.isInteger(mcNextPage)&&mcNextPage>mcPage&&mcNextPage<=1000;
         document.getElementById('mc-page').textContent='Page '+mcPage;
         document.getElementById('mc-prev').disabled=mcPage<=1;document.getElementById('mc-next').disabled=!mcHasMore;
-        mcMessage(items.length+' résultat(s) affiché(s).',true);
-    }catch(error){if(generation===mcGeneration&&sequence===mcExploreSequence)mcMessage(error.message);}
+        mcMessage(items.length+' résultat(s) affiché(s).'+(result.pagination?.hasMore&&mcNextPage===null?' Limite de navigation MineCards atteinte : affine les filtres pour voir la suite.':''),true);
+    }catch(error){if(generation===mcGeneration&&sequence===mcExploreSequence)mcMessage(mcErrorMessage(error));}
 }
-function mcChangePage(delta){if(delta>0&&!mcHasMore)return;mcPage=Math.max(1,Math.min(1000,mcPage+delta));void mcExplore();}
+function mcChangePage(delta){if(delta>0&&!mcHasMore)return;mcPage=delta>0?mcNextPage:Math.max(1,mcPage-1);void mcExplore();}
 async function mcOpenDetail(resource,id){
     const generation=mcGeneration,sequence=++mcExploreSequence;
     mcMessage('Chargement de la fiche…',true);

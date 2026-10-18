@@ -44,6 +44,11 @@ function sendJson(res, status, payload, extraHeaders = {}) {
     res.end(JSON.stringify(payload));
 }
 
+function sendApiError(res,error) {
+    const retryAfter=Number.isSafeInteger(error.retryAfter)&&error.retryAfter>0?error.retryAfter:null;
+    sendJson(res,error.status||500,{error:error.status?error.message:'Erreur interne du serveur.',...(retryAfter?{retryAfter}:{})},retryAfter?{'Retry-After':String(retryAfter)}:{});
+}
+
 function readBody(req, maxBytes = 4 * 1024 * 1024) {
     if (req.body !== undefined) {
         try {
@@ -311,7 +316,7 @@ async function handler(req, res) {
             const reply = await storage.transaction(async () => {
                 const buffered = {headersSent:false, writeHead(status,headers){this.status=status;this.headers=headers;}, end(body){this.body=body;this.headersSent=true;}};
                 try { await handleApi(req,buffered,url); }
-                catch (error) { if (!error.status) throw error; sendJson(buffered,error.status,{error:error.message}); }
+                catch (error) { if (!error.status) throw error; sendApiError(buffered,error); }
                 return buffered;
             });
             res.writeHead(reply.status,reply.headers);
@@ -332,7 +337,7 @@ async function handler(req, res) {
         });
     } catch (error) {
         if (!error.status) console.error('Erreur interne MineCards :', error.name || 'Error');
-        if (!res.headersSent) sendJson(res, error.status || 500, { error:error.status ? error.message : 'Erreur interne du serveur.' });
+        if (!res.headersSent) sendApiError(res,error);
         else res.destroy();
     }
 }

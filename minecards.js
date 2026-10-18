@@ -1,9 +1,9 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const storage = require('./storage');
 const BASE = 'https://minecards.vercel.app/api/v1/';
+const API_VERSION = '1.1.0';
 const KEY_FILE = path.join(__dirname, 'data', 'minecards-connections.json');
 const ROUTES = { cards:['q','rarity','category','dimension'], collection:['q','rarity','category','dimension'], boosters:[], profiles:['q'], arenas:[], auctions:['status'], leaderboard:[] };
 const REMOTE = {collection:'me/cards',boosters:'me/boosters'};
@@ -74,19 +74,15 @@ function localData(data) {
 }
 
 function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) {
-    const localJobs = new Map(), cache = new Map();
+    const localJobs = new Map();
     const jobs = {get:id=>storage.isCloud?storage.currentState().jobs?.[id]:localJobs.get(id),set:(id,value)=>{if(storage.isCloud){const state=storage.currentState();state.jobs||={};state.jobs[id]=value;}else localJobs.set(id,value);}};
     let queue=Promise.resolve(), lastRequest=0, blockedUntil=0;
     async function request(userId,resource,params={},providedKey=null) {
         const connection=providedKey ? {key:providedKey} : readConnections()[userId];
         if (!connection) throw fail(400,'Connecte une clé MineCards dans cet espace.');
-        const fingerprint=crypto.createHash('sha256').update(connection.key).digest('hex');
-        const cacheKey=userId+':'+fingerprint+':'+resource+':'+JSON.stringify(params);
-        const cached=cache.get(cacheKey);
-        if(cached && cached.until>Date.now())return cached.payload;
         const task=queue.catch(()=>{}).then(async()=>{
             if(storage.isCloud){const limiter=storage.currentState().limiter||{};lastRequest=limiter.lastRequest||0;blockedUntil=limiter.blockedUntil||0;}
-            if(blockedUntil>Date.now())throw fail(429,'Quota MineCards atteint. Réessaie dans '+Math.ceil((blockedUntil-Date.now())/1000)+' secondes.');
+            if(blockedUntil>Date.now())throw Object.assign(fail(429,'Quota MineCards atteint. Réessaie après le délai indiqué.'),{retryAfter:Math.ceil((blockedUntil-Date.now())/1000)});
             const delay=lastRequest+1100-Date.now();
             if(delay>0)await new Promise(resolve=>setTimeout(resolve,delay));
             lastRequest=Date.now();
@@ -95,16 +91,30 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
             if(url.origin!=='https://minecards.vercel.app'||!url.pathname.startsWith('/api/v1/'))throw fail(400,'Route MineCards invalide.');
             for(const [key,value]of Object.entries(params))if(value!==''&&value!==undefined)url.searchParams.set(key,String(value));
             let response;
-            try { response=await fetch(url,{headers:{Authorization:'Bearer '+connection.key,Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(20000)}); }
+            try { response=await fetch(url,{headers:{Authorization:'Bearer '+connection.key,Accept:'application/json'},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)}); }
             catch { throw fail(502,'MineCards est momentanément inaccessible. Les données locales sont conservées.'); }
-            if(response.status===429){const seconds=Number(response.headers.get('retry-after'));blockedUntil=Date.now()+(Number.isFinite(seconds)&&seconds>0?seconds:60)*1000;if(storage.isCloud)storage.currentState().limiter={lastRequest,blockedUntil};throw fail(429,'Quota MineCards atteint. Réessaie après le délai indiqué par le service.');}
+            const reset=Number(response.headers.get('x-ratelimit-reset'))*1000;
+            const remaining=response.headers.get('x-ratelimit-remaining');
+            if(remaining!==null&&Number(remaining)===0&&Number.isFinite(reset)&&reset>Date.now())blockedUntil=Math.max(blockedUntil,reset);
+            if(response.status===429){
+                const value=response.headers.get('retry-after');
+                const seconds=value===null?NaN:Number(value),date=Date.parse(value||'');
+                const retryAt=Number.isFinite(seconds)&&seconds>0?Date.now()+seconds*1000:Number.isFinite(date)&&date>Date.now()?date:Date.now()+60000;
+                blockedUntil=Math.max(blockedUntil,retryAt);
+            }
+            if(storage.isCloud)storage.currentState().limiter={lastRequest,blockedUntil};
+            if(response.status===429)throw Object.assign(fail(429,'Quota MineCards atteint. Réessaie après le délai indiqué par le service.'),{retryAfter:Math.max(1,Math.ceil((blockedUntil-Date.now())/1000))});
             if(response.status===401)throw fail(401,'La clé MineCards est invalide ou révoquée. Remplace-la dans la connexion.');
             if(response.status===404)throw fail(404,'Ressource MineCards introuvable ou privée.');
+            if(response.status===503)throw fail(503,'Le service MineCards est temporairement indisponible. Réessaie plus tard.');
             if(!response.ok)throw fail(response.status===400?400:502,'MineCards a refusé cette lecture (HTTP '+response.status+').');
             let payload;try{payload=await response.json();}catch{throw fail(502,'Réponse MineCards invalide.');}
-            if(!payload||!Object.hasOwn(payload,'data'))throw fail(502,'Format MineCards non reconnu.');
-            cache.set(cacheKey,{payload,until:Date.now()+30000});
-            if(cache.size>300)cache.delete(cache.keys().next().value);
+            if(!payload||typeof payload!=='object'||!Object.hasOwn(payload,'data')||payload.data===null)throw fail(502,'Format MineCards non reconnu.');
+            const isList=['cards','me/cards','profiles','arenas','auctions','leaderboard'].includes(resource);
+            if(isList){
+                const p=payload.pagination,expectedPage=Number(params.page||1),expectedLimit=Number(params.limit||25);
+                if(!Array.isArray(payload.data)||payload.data.length>expectedLimit||!p||p.page!==expectedPage||p.limit!==expectedLimit||typeof p.hasMore!=='boolean'||!(p.nextPage===null||(Number.isInteger(p.nextPage)&&p.nextPage===expectedPage+1&&p.nextPage<=1000))||(!p.hasMore&&p.nextPage!==null)||(p.hasMore&&p.nextPage===null&&expectedPage<1000))throw fail(502,'Pagination MineCards invalide. Les données précédentes sont conservées.');
+            }else if(typeof payload.data!=='object'||Array.isArray(payload.data))throw fail(502,'Détail MineCards invalide.');
             return payload;
         });
         queue=task;
@@ -113,7 +123,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
     function status(userId) {
         const user=readDb().users.find(u=>u.id===userId);
         const connection=readConnections()[userId];
-        return {configured:!!connection,apiVersion:'1.1.0',lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),job:jobs.get(userId)||null,readOnly:true};
+        return {configured:!!connection,apiVersion:API_VERSION,lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),job:jobs.get(userId)||null,readOnly:true};
     }
     async function sync(userId) {
         if(jobs.get(userId)?.running)return;
@@ -122,19 +132,23 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
         if(!connection)throw fail(400,'Aucune connexion MineCards.');
         jobs.set(userId,{running:true,pages:0,error:null,startedAt:new Date(started).toISOString()});
         try {
-            const owned=new Map();let page=1;
+            const owned=new Map(),seen=new Set();let page=1;
             do {
                 if(storage.isCloud&&Date.now()-started>200000)throw fail(504,'La synchronisation a dépassé le délai disponible. La collection précédente est conservée.');
                 const payload=await request(userId,'me/cards',{page,limit:100});
                 if(!Array.isArray(payload.data))throw fail(502,'Collection MineCards invalide.');
+                const pagination=payload.pagination;
+                if(!pagination||pagination.page!==page||pagination.limit!==100||typeof pagination.hasMore!=='boolean'||payload.data.length>100)throw fail(502,'Pagination MineCards manquante ou incohérente. La collection précédente est conservée.');
                 for(const item of payload.data){
-                    if(!item?.card||typeof item.cardId!=='string'||!Number.isSafeInteger(item.quantity)||item.quantity<0)throw fail(502,'Carte MineCards invalide.');
+                    if(!item?.card||typeof item.cardId!=='string'||!item.cardId||item.card.id!==item.cardId||!Number.isSafeInteger(item.quantity)||item.quantity<0)throw fail(502,'Carte MineCards invalide.');
+                    if(seen.has(item.cardId))throw fail(502,'Une carte apparaît sur plusieurs pages MineCards. Relance la synchronisation pour conserver un inventaire cohérent.');
+                    seen.add(item.cardId);
                     if(item.quantity>0)owned.set(item.cardId,item);
                 }
                 jobs.get(userId).pages++;
-                const next=payload.pagination?.nextPage;
-                if(next==null){if(payload.pagination?.hasMore)throw fail(502,'Pagination MineCards incomplète.');break;}
-                if(!Number.isSafeInteger(next)||next<=page||next>1000)throw fail(502,'Pagination MineCards invalide.');
+                const next=pagination.nextPage;
+                if(next===null){if(pagination.hasMore)throw fail(502,'La limite de pagination MineCards empêche un import complet. La collection précédente est conservée.');break;}
+                if(!pagination.hasMore||!Number.isSafeInteger(next)||next!==page+1||next>1000)throw fail(502,'Pagination MineCards invalide.');
                 page=next;
             }while(true);
             const latestConnection=readConnections()[userId];
@@ -155,7 +169,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
             updateCardPowers(user,[...owned.values()].map(item=>item.card));
             writeDb(db);
             jobs.set(userId,{running:false,pages:jobs.get(userId).pages,error:null,completedAt:user.minecards.syncedAt});
-        } catch(error){jobs.set(userId,{running:false,pages:jobs.get(userId)?.pages||0,error:error.message});throw error;}
+        } catch(error){jobs.set(userId,{running:false,pages:jobs.get(userId)?.pages||0,error:error.message,retryAt:error.retryAfter?new Date(Date.now()+error.retryAfter*1000).toISOString():null});throw error;}
     }
     async function handle(req,res,url,user) {
         const route=url.pathname.replace('/api/minecards/','');
@@ -184,14 +198,18 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
             if(id&&!['cards','profiles','arenas','auctions'].includes(resource))return sendJson(res,400,{error:'Cette route ne possède pas de détail.'});
             const allowed=new Set(id||resource==='boosters'?[]:['page','limit',...ROUTES[resource]]);
             const params={};
-            for(const [key,value]of url.searchParams){if(!allowed.has(key)||Object.hasOwn(params,key)||value.length>100)return sendJson(res,400,{error:'Paramètre MineCards invalide.'});params[key]=value;}
+            for(const [key,value]of url.searchParams){if(!allowed.has(key)||Object.hasOwn(params,key)||!value.trim()||value.length>100)return sendJson(res,400,{error:'Paramètre MineCards invalide.'});params[key]=value;}
+            if(params.rarity&&!Object.hasOwn(RARITIES,params.rarity))return sendJson(res,400,{error:'Rareté MineCards invalide.'});
+            if(params.status&&!['ACTIVE','SOLD','EXPIRED','CANCELLED','ALL'].includes(params.status))return sendJson(res,400,{error:'Statut d’enchère MineCards invalide.'});
             if(!id&&resource!=='boosters'){params.page=params.page||'1';params.limit=params.limit||'25';if(!/^\d+$/.test(params.page)||+params.page<1||+params.page>1000||!/^\d+$/.test(params.limit)||+params.limit<1||+params.limit>100)return sendJson(res,400,{error:'Pagination invalide.'});}
-            const remote=(REMOTE[resource]||resource)+(id?'/'+encodeURIComponent(decodeURIComponent(id)):'');
+            let decodedId;
+            if(id){try{decodedId=decodeURIComponent(id);}catch{return sendJson(res,400,{error:'Identifiant MineCards invalide.'});}if(!decodedId.trim()||decodedId.length>100||/[\u0000-\u001f\u007f/\\]/.test(decodedId)||['.','..'].includes(decodedId))return sendJson(res,400,{error:'Identifiant MineCards invalide.'});}
+            const remote=(REMOTE[resource]||resource)+(id?'/'+encodeURIComponent(decodedId):'');
             return sendJson(res,200,await request(user.id,remote,params));
         }
         return sendJson(res,404,{error:'Route de connexion introuvable.'});
     }
-    function forget(userId){const connections=readConnections();delete connections[userId];writeConnections(connections);for(const key of cache.keys())if(key.startsWith(userId+':'))cache.delete(key);}
+    function forget(userId){const connections=readConnections();delete connections[userId];writeConnections(connections);}
     return {handle,sync,status,request,forget};
 }
 module.exports={createMinecards,collectionData,localData,updateCardImages,updateCardPowers};

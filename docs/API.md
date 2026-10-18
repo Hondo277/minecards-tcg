@@ -45,6 +45,14 @@ Pagination : `page` de 1 à 1 000 et `limit` de 1 à 100, sauf boosters. Filtres
 
 En local, `/sync` répond `202` et `/status` donne l’avancement. Sur Vercel, la requête attend la fin et répond `200`. La clé réelle reste sur le serveur et n’est pas renvoyée dans les réponses.
 
+### Contrat MineCards consulté le 18 octobre 2026
+
+La [documentation officielle](https://minecards.vercel.app/developpeurs) et son [schéma OpenAPI](https://minecards.vercel.app/openapi.json) indiquent toujours la version **1.1.0**. Toutes les routes disponibles sont intégrées ; aucune route d’écriture n’est proposée par le fournisseur.
+
+Les lectures distantes ne sont pas mises en cache. Les filtres vides, répétés, inconnus, les raretés / statuts hors liste et les identifiants de détail invalides sont refusés avant d’utiliser le quota distant. Les listes suivent `nextPage` et la limite de navigation de 1 000 pages. Une synchronisation incomplète ou incohérente conserve la collection précédente.
+
+Une erreur de quota répond avec `{ "error": "message", "retryAfter": 60 }` et un en-tête `Retry-After` exprimé en secondes ; la durée réelle vient de la réponse distante. Un travail de synchronisation échoué peut exposer `job.retryAt` (ISO 8601) dans `/status`. Une indisponibilité distante reste un `503`. Les puissances utilisent toujours `power`, sans modifier l’attaque et la défense déjà importées.
+
 ## Administration
 
 Toutes ces routes exigent le rôle `admin`.

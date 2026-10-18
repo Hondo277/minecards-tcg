@@ -58,7 +58,9 @@ La synchronisation :
 
 En local, le bouton lance un travail en mémoire, répond `202` et l’interface consulte l’avancement. Sur Vercel, la synchronisation est attendue dans la requête et répond `200` à sa fin. Le budget de lecture est de 200 secondes, avec un délai réseau de 20 secondes par appel.
 
-La file espace les lectures de 1,1 seconde ; le cache dure 30 secondes. En cloud, le dernier instant de lecture et le délai de blocage sont persistés ; le cache reste lié à l’instance. `429` est traité avec `Retry-After`.
+La file espace les lectures de 1,1 seconde. Les réponses ne sont pas mises en cache et les appels `fetch` utilisent `cache: 'no-store'`, conformément à la documentation du fournisseur. La copie de collection explicitement synchronisée reste persistante. En cloud, le dernier instant de lecture et le délai de blocage sont persistés. Le client respecte `Retry-After`, ainsi que `X-RateLimit-Remaining: 0` et `X-RateLimit-Reset` pour attendre la prochaine fenêtre. Le délai est transmis au navigateur dans le JSON et l’en-tête `Retry-After` des erreurs `429`.
+
+Chaque liste est contrôlée : tableau, page et limite attendues, `hasMore` et `nextPage` cohérents. Un identifiant dupliqué entre pages ou différent de celui de la carte annule l’import. À la page 1 000, `hasMore: true` avec `nextPage: null` est accepté pour l’explorateur mais interdit pour une synchronisation : un inventaire partiel ne remplace jamais la dernière copie complète.
 
 ## Decks et profil
 

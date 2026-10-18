@@ -86,7 +86,7 @@ La synchronisation va de **MineCards vers cette application**. Les achats, écha
 - Les images et puissances des cartes correspondantes dans les favoris sont actualisées, puis les totaux recalculés.
 - Les quantités correspondent aux exemplaires disponibles retournés par l’API, hors exemplaires réservés.
 - Actualisation automatique proposée toutes les deux minutes lorsque la page est visible et hors saisie ou édition.
-- Lectures espacées de 1,1 seconde, cache de 30 secondes, gestion des erreurs `429` et de `Retry-After`.
+- Lectures espacées de 1,1 seconde, sans cache de réponse conformément à `no-store`. Respect de `Retry-After` et du quota restant / instant de réinitialisation communiqués par MineCards.
 - La déconnexion de la clé conserve la dernière collection importée.
 
 L’explorateur consulte le catalogue, sa collection, les boosters, les profils publics, les arènes, les enchères et le classement, avec filtres, pagination et JSON complet. Les arènes montrent les statistiques enregistrées de leur défense, qui peuvent différer du catalogue actuel.

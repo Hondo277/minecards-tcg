@@ -693,7 +693,7 @@
             }
             let result = {};
             try { result = await response.json(); } catch (error) { /* Le serveur a renvoyé une réponse sans JSON. */ }
-            if (!response.ok) throw Object.assign(new Error(result.error || 'La requête a échoué.'), { status:response.status });
+            if (!response.ok) throw Object.assign(new Error(result.error || 'La requête a échoué.'), { status:response.status, retryAfter:result.retryAfter || Number(response.headers.get('retry-after')) || null });
             return result;
         }
 
