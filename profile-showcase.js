@@ -1,5 +1,32 @@
 'use strict';
 
+function collectionCopyStats(collection) {
+    const groups=new Map(),remoteNames=new Set(),remoteIds=new Set(),seenLocalIds=new Set();
+    // Une entrée synchronisée représente déjà tous ses exemplaires disponibles.
+    for(const card of collection){
+        if(!card?._minecards)continue;
+        const {cardId,quantity}=card._minecards;
+        if(typeof cardId!=='string'||!cardId||!Number.isSafeInteger(quantity)||quantity<1)continue;
+        const key='remote:'+cardId,previous=groups.get(key);
+        if(!previous||quantity>previous.quantity)groups.set(key,{card,quantity});
+        remoteIds.add(cardId);
+        remoteNames.add(deckName(card));
+    }
+    for(const card of collection){
+        if(!card||card._minecards)continue;
+        const name=deckName(card),remoteId=deckRemoteId(card);
+        if(remoteNames.has(name)||(remoteId&&remoteIds.has(remoteId)))continue;
+        const localId=card.id==null?null:String(card.id);
+        if(localId!==null&&seenLocalIds.has(localId))continue;
+        if(localId!==null)seenLocalIds.add(localId);
+        const key=remoteId?'remote:'+remoteId:'local:'+(name||localId);
+        const previous=groups.get(key);
+        groups.set(key,{card:previous?.card||card,quantity:(previous?.quantity||0)+1});
+    }
+    const entries=[...groups.values()];
+    return {cards:entries.map(entry=>entry.card),unique:entries.length,copies:entries.reduce((sum,entry)=>sum+entry.quantity,0),duplicates:entries.reduce((sum,entry)=>sum+Math.max(0,entry.quantity-1),0)};
+}
+
 function fillProfileFeaturedDeck(value) {
     const select=document.getElementById('settings-featured-deck');
     select.innerHTML='<option value="">Dernier favori enregistré</option>'+favoriteDecks.map(deck=>`<option value="${escapeHtml(deck.id)}">${escapeHtml(deck.name)}</option>`).join('');
@@ -48,15 +75,14 @@ function renderProfileShowcase() {
     if (!activeProfile || !document.getElementById('profile-showcase')) return;
     const select=document.getElementById('settings-featured-deck');
     if (select.dataset.deckIds!==JSON.stringify(favoriteDecks.map(deck=>[deck.id,deck.name]))) fillProfileFeaturedDeck(select.value||activeProfile.profile?.featuredDeckId||'');
-    const collection=distinctDeckCards(cards);
-    const copies=collection.reduce((sum,card)=>sum+(Number.isSafeInteger(card._minecards?.quantity)&&card._minecards.quantity>0?card._minecards.quantity:1),0);
+    const counts=collectionCopyStats(cards),collection=counts.cards,copies=counts.copies;
     const strongest=strongestProfileCards();
     const strongestPower=strongest.length===3?strongest.reduce((sum,card)=>sum+profilePower(card),0):null;
     const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
     const rarityNames=['Charbon','Cuivre','Fer','Or','Diamant','Netherite'];
     const rarityCount=new Map();
     for (const card of collection) {const key=normalize(card.rarete);rarityCount.set(key,(rarityCount.get(key)||0)+1);}
-    const stats=[['fa-layer-group',collection.length,'Cartes uniques'],['fa-clone',copies,'Exemplaires'],['fa-copy',copies-collection.length,'Doublons'],['fa-star',favoriteDecks.length,'Decks favoris'],['fa-gem',rarityCount.size,'Raretés possédées'],['fa-bolt',strongestPower,'Deck maximum']];
+    const stats=[['fa-layer-group',counts.unique,'Cartes uniques'],['fa-clone',copies,'Exemplaires'],['fa-copy',counts.duplicates,'Doublons hors originaux'],['fa-star',favoriteDecks.length,'Decks favoris'],['fa-gem',rarityCount.size,'Raretés possédées'],['fa-bolt',strongestPower,'Deck maximum']];
     document.getElementById('profile-collection-stats').innerHTML=stats.map(([icon,value,label])=>`<div><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${value===null?'—':value.toLocaleString('fr-FR')}</strong><span>${label}</span></div>`).join('');
     const created=new Date(activeProfile.createdAt);
     document.getElementById('profile-member-meta').innerHTML=`<span class="profile-collector-badge"><i class="fa-solid ${activeProfile.role==='admin'?'fa-shield-halved':'fa-gem'}" aria-hidden="true"></i> ${activeProfile.role==='admin'?'Administrateur':'Collectionneur'}</span>${Number.isNaN(created.getTime())?'':`<span><i class="fa-regular fa-calendar" aria-hidden="true"></i> Membre depuis ${escapeHtml(created.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}))}</span>`}<span><i class="fa-solid fa-lock" aria-hidden="true"></i> Espace personnel</span>`;

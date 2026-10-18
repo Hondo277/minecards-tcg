@@ -157,6 +157,12 @@ main .workspace-description { margin-top:7px;font-size:11px; }
 .overview-lead .eyebrow { color:#d8b9c6; }
 .overview-lead h3 { font-size:clamp(24px,2.7vw,35px);font-weight:600;letter-spacing:-.055em;line-height:1.15;margin:14px 0; }
 .overview-lead p { max-width:245px;color:#abb7cb;font-size:11px;line-height:1.7; }
+.collection-duplicate-counter { display:flex;align-items:center;gap:12px;padding:14px 16px;margin-top:24px;background:#141e304d;border:1px solid #c6a5ef38;border-radius:12px; }
+.collection-duplicate-counter > i { color:#c9b3ed;font-size:18px; }
+.collection-duplicate-counter > div { display:grid;gap:4px;flex:1; }
+.collection-duplicate-counter span { font-size:12px;font-weight:600;color:#e5d8f5; }
+.collection-duplicate-counter small { font-size:10px;color:#a6b4cf; }
+.collection-duplicate-counter strong { color:#e1ccff;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.04em; }
 .text-link { display:inline-flex;gap:18px;align-items:center;margin-top:19px;color:#ffbcab;font-size:11px;font-weight:600; }
 .collection-metrics { display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:repeat(3,1fr);padding:0; }
 .metric { padding:16px 22px;position:relative;border-bottom:1px solid #ffffff0c;display:flex;align-items:center;justify-content:space-between;gap:12px; }

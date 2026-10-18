@@ -362,7 +362,7 @@
 
         <section id="section-collection" class="tab-section space-y-8" aria-label="Ma collection">
             <div class="collection-overview">
-                <div class="overview-lead"><span class="eyebrow">LE CARNET DE COLLECTION</span><h3>Chaque carte<br>ouvre le jeu.</h3><p>Retrouve tes cartes et prépare ta prochaine combinaison.</p><button type="button" onclick="switchTab('builder')" class="text-link">Composer un deck <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></div>
+                <div class="overview-lead"><span class="eyebrow">LE CARNET DE COLLECTION</span><h3>Chaque carte<br>ouvre le jeu.</h3><p>Retrouve tes cartes et prépare ta prochaine combinaison.</p><button type="button" onclick="switchTab('builder')" class="text-link">Composer un deck <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button><div class="collection-duplicate-counter" title="Pour chaque carte, on retire un original : 3 exemplaires donnent 2 doublons."><i class="fa-solid fa-copy" aria-hidden="true"></i><div><span>Doublons</span><small>Hors exemplaire original</small></div><strong id="stat-duplicates" aria-live="polite" aria-label="Nombre total de doublons, originaux exclus">0</strong></div></div>
                 <div class="collection-metrics">
                     <div class="metric metric-major"><i class="fa-solid fa-clone" aria-hidden="true"></i><h3 id="stat-total">0</h3><p>cartes dans ta collection</p></div>
                     <div class="metric"><span>Puissance moyenne</span><h3 id="stat-avg-power">0</h3><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
@@ -1061,7 +1061,9 @@
         }
 
         function updateStats() {
-            document.getElementById('stat-total').innerText = cards.length;
+            const counts=collectionCopyStats(cards);
+            document.getElementById('stat-total').innerText = counts.unique;
+            document.getElementById('stat-duplicates').textContent = counts.duplicates.toLocaleString('fr-FR');
             if (cards.length > 0) {
                 const avgPower = Math.round(cards.reduce((acc, c) => acc + (Number(c.valeur) || 0), 0) / cards.length);
                 const avgDef = Math.round(cards.reduce((acc, c) => acc + (Number(c.defense) || 0), 0) / cards.length);
