@@ -377,7 +377,7 @@
                     <label class="filter-field" for="rarity-filter"><span>Rareté</span><select id="rarity-filter" onchange="filterAndRenderCards()"><option value="all">Toutes les raretés</option><option value="Netherite">Netherite</option><option value="Diamant">Diamant</option><option value="Or">Or</option><option value="Fer">Fer</option><option value="Cuivre">Cuivre</option><option value="Charbon">Charbon</option></select></label>
                     <label class="filter-field" for="sort-select"><span>Classement</span><select id="sort-select" onchange="filterAndRenderCards()"><option value="valeur-desc">Puissance décroissante</option><option value="valeur-asc">Puissance croissante</option><option value="duplicates-desc">Doublons : du plus au moins</option><option value="duplicates-asc">Doublons : du moins au plus</option><option value="nom-asc">Nom A → Z</option><option value="nom-desc">Nom Z → A</option><option value="attaque-desc">Attaque max</option><option value="defense-desc">Défense max</option></select></label>
                 </div>
-                <div class="library-caption"><div><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><span id="duplicate-sort-summary" class="duplicate-sort-summary hidden" role="status"></span></div><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
+                <div class="library-caption"><div><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><span id="duplicate-sort-summary" class="duplicate-sort-summary hidden" role="status"></span><span id="collection-sync-state" class="collection-sync-state" role="status" aria-live="polite"></span></div><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
                 <div id="cards-grid" class="card-library-grid"></div>
                 <div id="empty-state" class="hidden interface-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h3>Aucune carte à afficher</h3><p>Ajoute ta première carte ou ajuste tes filtres.</p><button type="button" class="workspace-add-button" onclick="openAddModal()">Ajouter une carte</button></div>
             </div>
@@ -447,7 +447,8 @@
             <div class="mc-connection glass-panel">
                 <div><span class="eyebrow">MINECARDS → TA COLLECTION LOCALE</span><h3>Ta collection, connectée.</h3><p id="mc-status" role="status" aria-live="polite">Chargement de la connexion…</p></div>
                 <button id="mc-sync-button" type="button" class="workspace-add-button" onclick="mcSync()"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Synchroniser maintenant</button>
-                <div class="mc-connection-note"><p>Les cartes disponibles sont lues depuis MineCards. Tes cartes locales et tes favoris restent conservés. Les achats, échanges et ouvertures de boosters s’effectuent sur le site MineCards.</p><p>API 1.1 : la puissance utilise directement le champ officiel « power ». Les valeurs locales d’attaque et de défense sont conservées. Les totaux des favoris sont recalculés ; les quantités excluent les exemplaires réservés.</p><label><input id="mc-auto-sync" type="checkbox" checked onchange="mcSetAutoSync()"> Actualiser toutes les 2 minutes pendant que cette application est ouverte.</label></div>
+                <div id="mc-sync-progress" class="mc-sync-progress hidden" role="status" aria-live="polite"><div><strong id="mc-sync-phase">Préparation…</strong><span id="mc-sync-counts"></span></div><progress id="mc-sync-meter" max="1" aria-label="Synchronisation de la collection"></progress><small>La collection reste disponible pendant l’actualisation. La nouvelle copie est appliquée après réception de toutes les pages.</small></div>
+                <div class="mc-connection-note"><p>Les cartes disponibles sont lues depuis MineCards. Tes cartes locales et tes favoris restent conservés. Les achats, échanges et ouvertures de boosters s’effectuent sur le site MineCards.</p><p>API 1.1 : la puissance utilise directement le champ officiel « power ». Les valeurs locales d’attaque et de défense sont conservées. Les totaux des favoris sont recalculés ; les quantités excluent les exemplaires réservés.</p><label><input id="mc-auto-sync" type="checkbox" checked onchange="mcSetAutoSync()"> Actualiser toutes les 30 secondes quand l’onglet est visible, et au retour sur l’application.</label></div>
                 <details class="mc-credentials"><summary>Gérer la connexion</summary><form onsubmit="mcConnect(event)"><label for="mc-api-key">Nouvelle clé personnelle MineCards</label><div><input type="password" id="mc-api-key" autocomplete="off" placeholder="mc_live_…" required><button type="submit" class="secondary-button">Enregistrer la connexion</button></div><small>La clé est conservée dans un fichier privé du serveur. Elle n’est jamais renvoyée au navigateur.</small></form><button type="button" class="text-link" onclick="mcDisconnect()">Déconnecter MineCards</button></details>
             </div>
             <div class="mc-explorer glass-panel">
@@ -619,6 +620,7 @@
         let currentImageData = "";
         let activeProfile = null;
         let profileSaveQueue = Promise.resolve();
+        let profileDataRevision = 0;
         let adminUsers = [];
         let selectedAdminUserId = null;
 
@@ -1019,6 +1021,7 @@
 
         function saveProfileData(confirmSave=false) {
             if (!activeProfile) return;
+            profileDataRevision++;
             const data = { cards:JSON.parse(JSON.stringify(cards)), favoriteDecks:JSON.parse(JSON.stringify(favoriteDecks)) };
             const saving=profileSaveQueue.then(() => apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) }));
             profileSaveQueue=saving.catch(error => { console.error('Sauvegarde du profil impossible :', error); });
@@ -1158,7 +1161,7 @@
                 emptyState.classList.remove('hidden');
             } else {
                 emptyState.classList.add('hidden');
-                list.forEach(card => grid.insertAdjacentHTML('beforeend', createCardHtml(card, true, duplicateCounts?.get(card)??null)));
+                grid.innerHTML = list.map(card => createCardHtml(card, true, duplicateCounts?.get(card)??null)).join('');
             }
         }
 

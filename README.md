@@ -99,7 +99,10 @@ La synchronisation va de **MineCards vers cette application**. Les achats, écha
 - La puissance vient du champ officiel `power`. L’attaque et la défense déjà enregistrées sont conservées.
 - Les images et puissances des cartes correspondantes dans les favoris sont actualisées, puis les totaux recalculés.
 - Les quantités correspondent aux exemplaires disponibles retournés par l’API, hors exemplaires réservés.
-- Actualisation automatique proposée toutes les deux minutes lorsque la page est visible et hors saisie ou édition.
+- Actualisation automatique proposée toutes les 30 secondes lorsque la page est visible et hors saisie ou édition, ainsi qu'au retour sur l'onglet ou après une reconnexion réseau si la copie est ancienne.
+- Avancement page par page, reprise d'une lecture interrompue pendant 15 minutes et attente automatique en cas de quota ou d'indisponibilité temporaire.
+- Sur Vercel, l'attente réseau de la synchronisation se fait hors du verrou Redis : les autres opérations peuvent accéder au stockage entre les étapes. La collection reste disponible et n'est remplacée qu'après une lecture complète.
+- La dernière étape fournit directement la collection ; les cartes et favoris ne sont redessinés que si leurs données ont changé.
 - Lectures espacées de 1,1 seconde, sans cache de réponse conformément à `no-store`. Respect de `Retry-After` et du quota restant / instant de réinitialisation communiqués par MineCards.
 - La déconnexion de la clé conserve la dernière collection importée.
 
@@ -152,6 +155,8 @@ theme.css                     Thème, responsive et barre latérale
 server.js                     Serveur HTTP, comptes, profils, routes admin
 storage.js                    Stockage et transactions Redis
 minecards.js                  Passerelle privée et synchronisation
+minecards-remote.js           Lectures MineCards et validation du protocole distant
+minecards-sync.js             Import par étapes, reprise et validation atomique
 minecards-ui.js               Connexion et explorateur MineCards
 profile-media.js              Import, compression et aperçu des images
 profile-showcase.js           Statistiques et vitrine du profil

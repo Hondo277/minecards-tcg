@@ -1,33 +1,69 @@
 'use strict';
 let mcPage=1,mcNextPage=null,mcHasMore=false,mcConfigured=false,mcBusy=false,mcTimer=null,mcGeneration=0,mcExploreSequence=0,mcLastSync=null;
+let mcSyncPromise=null,mcController=null,mcCurrentStatus=null,mcNextAutoAt=0;
+const mcAutoInterval=30000;
 const mcFilters={cards:['q','rarity','category','dimension','limit'],collection:['q','rarity','category','dimension','limit'],boosters:[],profiles:['q','limit'],arenas:['limit'],auctions:['status','limit'],leaderboard:['limit']};
 const mcLabels={id:'Identifiant',cardId:'Carte',name:'Nom',nameEn:'Nom anglais',description:'Description',descriptionEn:'Description anglaise',category:'Catégorie',dimension:'Dimension',minecraftVersion:'Version Minecraft',rarity:'Rareté',attack:'Attaque',defense:'Défense',active:'Disponible dans les boosters',quantity:'Exemplaires disponibles',username:'Joueur',bio:'Présentation',premium:'MineCards+',showCollection:'Collection publique',showActivity:'Activité publique',createdAt:'Création',score:'Score',rank:'Rang',available:'Boosters disponibles',capacity:'Capacité',intervalSeconds:'Intervalle (secondes)',accruedAt:'Dernière acquisition',giftedStandard:'Dons classiques',giftedPremium:'Dons premium',nextAt:'Prochain booster',premiumAvailable:'Boosters premium disponibles',premiumNextAt:'Prochain premium',premiumIntervalSeconds:'Intervalle premium (secondes)',dailyPremiumAvailable:'Premium disponible (compatibilité)',serverTime:'Heure du serveur',badge:'Badge',champion:'Champion',startingPrice:'Prix de départ',currentBid:'Offre actuelle',status:'Statut enregistré',effectiveStatus:'Statut effectif',hasEnded:'Terminée',settled:'Règlement effectué',endsAt:'Fin',settledAt:'Date du règlement',seller:'Vendeur',highestBidder:'Meilleur enchérisseur',bidCount:'Nombre d’offres',showcaseCards:'Cartes exposées',showcaseBadges:'Badges exposés',collection:'Collection publique',activity:'Activité',avatarId:'Avatar',bannerId:'Bannière'};
 mcLabels.power='Puissance officielle';
 function mcMessage(message,success=false){const el=document.getElementById('mc-explorer-message');el.textContent=message;el.classList.toggle('success',success);}
 function mcErrorMessage(error){return error.message+(error.retryAfter?' Réessaie dans '+error.retryAfter+' secondes.':'');}
 function mcAutoEnabled(){try{return localStorage.getItem('mc-auto-'+activeProfile?.id)!=='false';}catch{return true;}}
-function mcSetAutoSync(){try{localStorage.setItem('mc-auto-'+activeProfile.id,String(document.getElementById('mc-auto-sync').checked));}catch{} }
-function mcStop(){mcGeneration++;mcExploreSequence++;if(mcTimer)clearInterval(mcTimer);mcTimer=null;mcConfigured=false;mcBusy=false;mcLastSync=null;arenaReset();document.getElementById('mc-api-key').value='';document.getElementById('mc-results').textContent='Choisis une rubrique puis clique sur « Afficher ».';document.getElementById('mc-detail').classList.add('hidden');}
+function mcSetAutoSync(){try{localStorage.setItem('mc-auto-'+activeProfile.id,String(document.getElementById('mc-auto-sync').checked));}catch{}void mcMaybeSync();}
+function mcStop(){
+    mcGeneration++;mcExploreSequence++;mcController?.abort();mcController=null;mcSyncPromise=null;
+    if(mcTimer)clearInterval(mcTimer);mcTimer=null;mcConfigured=false;mcBusy=false;mcLastSync=null;mcCurrentStatus=null;mcNextAutoAt=0;
+    arenaReset();document.getElementById('mc-api-key').value='';document.getElementById('mc-results').textContent='Choisis une rubrique puis clique sur « Afficher ».';document.getElementById('mc-detail').classList.add('hidden');
+    document.getElementById('mc-sync-progress').classList.add('hidden');document.getElementById('collection-sync-state').textContent='';
+}
+function mcDelay(milliseconds,signal){
+    return new Promise((resolve,reject)=>{
+        if(signal.aborted){reject(new DOMException('Synchronisation interrompue.','AbortError'));return;}
+        const done=()=>{signal.removeEventListener('abort',cancel);resolve();};
+        const timer=setTimeout(done,milliseconds);
+        const cancel=()=>{clearTimeout(timer);signal.removeEventListener('abort',cancel);reject(new DOMException('Synchronisation interrompue.','AbortError'));};
+        signal.addEventListener('abort',cancel,{once:true});
+    });
+}
 function mcApplyStatus(state){
+    mcCurrentStatus=state;
     mcConfigured=state.configured;mcLastSync=state.lastSync;
-    document.getElementById('mc-sync-button').disabled=!mcConfigured||mcBusy||state.job?.running;
+    const job=state.job,button=document.getElementById('mc-sync-button');
+    button.disabled=!mcConfigured||mcBusy;button.setAttribute('aria-busy',String(mcBusy));
+    button.innerHTML='<i class="fa-solid fa-arrows-rotate'+(mcBusy?' fa-spin':'')+'" aria-hidden="true"></i> '+(mcBusy?'Synchronisation…':job?.running?'Reprendre la synchronisation':'Synchroniser maintenant');
     let text=mcConfigured?'Connexion active · API '+(state.apiVersion||'1.1.0')+'. ':'Aucune clé reliée à ce profil. ';
     if(state.lastSync)text+=state.uniqueCards+' cartes différentes · '+state.totalCards+' exemplaires disponibles · dernière copie le '+new Date(state.lastSync).toLocaleString('fr-FR')+'.';
     if(state.job?.running)text+=' Synchronisation en cours : '+state.job.pages+' page(s) lue(s).';
     if(state.job?.error)text+=' Dernier essai : '+state.job.error;
     if(state.job?.retryAt&&Date.parse(state.job.retryAt)>Date.now())text+=' Nouvel essai possible à '+new Date(state.job.retryAt).toLocaleTimeString('fr-FR')+'.';
     document.getElementById('mc-status').textContent=text;
+    const progress=document.getElementById('mc-sync-progress'),meter=document.getElementById('mc-sync-meter'),indicator=document.getElementById('collection-sync-state');
+    progress.classList.toggle('hidden',!mcBusy&&!job?.running&&job?.phase!=='complete');
+    const waiting=job?.retryAt&&Date.parse(job.retryAt)>Date.now();
+    const seconds=waiting?Math.ceil((Date.parse(job.retryAt)-Date.now())/1000):0;
+    let phase=job?.phase==='complete'?'Collection à jour':waiting?'Reprise dans '+seconds+' s':mcBusy?(job?.phase==='starting'?'Préparation de la synchronisation…':'Lecture de la page '+(job?.nextPage||1)+'…'):job?.running?'Synchronisation à reprendre':'';
+    document.getElementById('mc-sync-phase').textContent=phase;
+    document.getElementById('mc-sync-counts').textContent=(job?.pages||0)+' page(s) · '+(job?.received||0)+' carte(s) reçue(s)';
+    if(job?.phase==='complete')meter.value=1;else meter.removeAttribute('value');
+    indicator.classList.toggle('sync-active',mcBusy);indicator.textContent=mcBusy?phase:job?.running?'Actualisation interrompue · reprise possible':state.lastSync?'Collection actualisée à '+new Date(state.lastSync).toLocaleTimeString('fr-FR'):'';
 }
 async function mcStatus(){const generation=mcGeneration;const state=await apiRequest('/api/minecards/status');if(generation!==mcGeneration)return null;mcApplyStatus(state);return state;}
 async function mcInit(){
     mcStop();const generation=mcGeneration;
     document.getElementById('mc-auto-sync').checked=mcAutoEnabled();
-    try{const state=await mcStatus();if(generation!==mcGeneration||!state)return;if(state.configured&&mcAutoEnabled()&&(!state.lastSync||Date.now()-Date.parse(state.lastSync)>120000||state.job?.running))void mcSync();}
+    try{const state=await mcStatus();if(generation!==mcGeneration||!state)return;void mcMaybeSync();}
     catch(error){document.getElementById('mc-status').textContent=error.message;}
     if(generation!==mcGeneration)return;
-    mcTimer=setInterval(()=>{if(activeProfile&&mcConfigured&&mcAutoEnabled()&&!mcBusy&&document.visibilityState==='visible'&&document.getElementById('card-modal').classList.contains('hidden')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&(!mcLastSync||Date.now()-Date.parse(mcLastSync)>=120000))void mcSync();},120000);
+    mcTimer=setInterval(()=>void mcMaybeSync(),5000);
     mcResourceChanged(false);
 }
+function mcMaybeSync(){
+    const editing=document.activeElement?.matches('textarea,select,input:not([type="checkbox"]):not([type="button"]):not([type="submit"])');
+    if(activeProfile&&mcConfigured&&mcAutoEnabled()&&!mcBusy&&Date.now()>=mcNextAutoAt&&document.visibilityState==='visible'&&document.getElementById('card-modal').classList.contains('hidden')&&!editing&&(mcCurrentStatus?.job?.running||!mcLastSync||Date.now()-Date.parse(mcLastSync)>=mcAutoInterval))return mcSync();
+    return Promise.resolve(null);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void mcMaybeSync();});
+window.addEventListener('focus',()=>void mcMaybeSync());
+window.addEventListener('online',()=>{mcNextAutoAt=0;void mcMaybeSync();});
 async function mcShow(){try{await mcStatus();}catch(error){mcMessage(error.message);}mcResourceChanged(false);}
 async function mcConnect(event){
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
@@ -38,29 +74,72 @@ async function mcDisconnect(){
     if(!confirm('Déconnecter la clé MineCards de ce profil ? La dernière copie de collection et tes cartes locales seront conservées.'))return;
     try{await apiRequest('/api/minecards/disconnect',{method:'POST',body:'{}'});await mcInit();mcMessage('Connexion retirée. La dernière collection importée reste consultable.',true);}catch(error){mcMessage(error.message);}
 }
-async function mcReloadCollection(generation){
-    await profileSaveQueue;
-    const result=await apiRequest('/api/data');
-    if(generation!==mcGeneration||!activeProfile)return;
-    cards=Array.isArray(result.data?.cards)?result.data.cards:[];
-    favoriteDecks=Array.isArray(result.data?.favoriteDecks)?result.data.favoriteDecks:[];
-    filterAndRenderCards();renderFavoriteDecks();
-}
-async function mcSync(){
-    if(mcBusy||!activeProfile)return;
-    const generation=mcGeneration;mcBusy=true;document.getElementById('mc-sync-button').disabled=true;
-    try{
+async function mcReloadCollection(generation,suppliedData=null,revision=null){
+    while(generation===mcGeneration&&activeProfile){
         await profileSaveQueue;
-        if(generation!==mcGeneration)return;
-        let state=await apiRequest('/api/minecards/sync',{method:'POST',body:'{}'});
-        while(generation===mcGeneration&&state.job?.running){mcApplyStatus(state);await new Promise(resolve=>setTimeout(resolve,2000));if(generation!==mcGeneration)return;state=await apiRequest('/api/minecards/status');}
-        if(generation!==mcGeneration)return;
-        mcApplyStatus(state);
-        if(state.job?.error)throw Object.assign(Error(state.job.error),{retryAfter:state.job.retryAt?Math.max(0,Math.ceil((Date.parse(state.job.retryAt)-Date.now())/1000)):null});
-        await mcReloadCollection(generation);
-        mcMessage('Collection actualisée depuis MineCards. Les cartes locales et les favoris sont conservés.',true);
-    }catch(error){if(generation===mcGeneration){mcMessage(mcErrorMessage(error));document.getElementById('mc-status').textContent=mcErrorMessage(error);}}
-    finally{if(generation===mcGeneration){mcBusy=false;document.getElementById('mc-sync-button').disabled=!mcConfigured;}}
+        if(generation!==mcGeneration||!activeProfile)return;
+        const currentRevision=profileDataRevision;
+        const result=suppliedData&&revision===currentRevision?{data:suppliedData}:await apiRequest('/api/data');
+        if(generation!==mcGeneration||!activeProfile)return;
+        // Une sauvegarde lancée pendant cette lecture doit se terminer avant
+        // d'afficher une nouvelle copie, sans effacer les modifications locales.
+        if(currentRevision!==profileDataRevision){suppliedData=null;continue;}
+        const nextCards=Array.isArray(result.data?.cards)?result.data.cards:[],nextDecks=Array.isArray(result.data?.favoriteDecks)?result.data.favoriteDecks:[];
+        if(JSON.stringify(nextCards)===JSON.stringify(cards)&&JSON.stringify(nextDecks)===JSON.stringify(favoriteDecks))return false;
+        cards=nextCards;favoriteDecks=nextDecks;
+        filterAndRenderCards();renderFavoriteDecks();
+        return true;
+    }
+}
+function mcSync(){
+    if(mcSyncPromise)return mcSyncPromise;
+    if(!activeProfile)return Promise.resolve(null);
+    const generation=mcGeneration,controller=new AbortController();mcController=controller;mcBusy=true;
+    mcApplyStatus({...mcCurrentStatus,configured:mcConfigured,lastSync:mcLastSync,job:{running:true,phase:'starting',pages:0,received:0}});
+    const task=(async()=>{
+        try{
+            await profileSaveQueue;if(generation!==mcGeneration)return null;
+            const revision=profileDataRevision;
+            let state=await apiRequest('/api/minecards/sync',{method:'POST',body:'{}',signal:controller.signal}),transportRetries=0;
+            while(generation===mcGeneration&&state.job?.running){
+                mcApplyStatus(state);
+                const nextAt=state.job.retryAt?Date.parse(state.job.retryAt):Date.now()+(state.job.nextPollMs||0);
+                while(nextAt>Date.now()){
+                    await mcDelay(Math.min(1000,nextAt-Date.now()),controller.signal);
+                    if(generation!==mcGeneration)return null;mcApplyStatus(state);
+                }
+                if(!state.job.id||!Number.isSafeInteger(state.job.nextPage))throw Error('Recharge la page pour activer la nouvelle synchronisation.');
+                mcApplyStatus({...state,job:{...state.job,phase:'fetching',retryAt:null}});
+                try{
+                    state=await apiRequest('/api/minecards/sync/step',{method:'POST',body:JSON.stringify({jobId:state.job.id,page:state.job.nextPage}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(45000)])});
+                    transportRetries=0;
+                }catch(error){
+                    if(controller.signal.aborted||transportRetries>=2||error.status&&![502,503,504].includes(error.status))throw error;
+                    transportRetries++;mcMessage('Connexion instable : reprise de la dernière étape confirmée…',true);
+                    await mcDelay(1000*transportRetries,controller.signal);
+                    state=await apiRequest('/api/minecards/status',{signal:controller.signal});
+                }
+            }
+            if(generation!==mcGeneration)return null;
+            mcApplyStatus(state);
+            if(state.job?.error)throw Object.assign(Error(state.job.error),{retryAfter:state.job.retryAt?Math.max(0,Math.ceil((Date.parse(state.job.retryAt)-Date.now())/1000)):null});
+            if(!state.configured||state.job?.phase!=='complete')throw Error('La synchronisation a été interrompue. Relance-la depuis la connexion MineCards.');
+            const changed=await mcReloadCollection(generation,state.data,revision);
+            if(generation!==mcGeneration)return null;
+            mcMessage(changed?'Collection actualisée depuis MineCards.':'Collection à jour : aucun changement depuis la dernière lecture.',true);
+            mcNextAutoAt=Date.now()+mcAutoInterval;
+            return state;
+        }catch(error){
+            if(generation===mcGeneration){
+                mcNextAutoAt=Date.now()+Math.max(mcAutoInterval,(error.retryAfter||0)*1000);mcMessage(mcErrorMessage(error));
+                if(mcCurrentStatus)mcCurrentStatus={...mcCurrentStatus,job:{...mcCurrentStatus.job,error:mcErrorMessage(error)}};
+            }
+            return null;
+        }finally{
+            if(generation===mcGeneration){mcBusy=false;mcSyncPromise=null;mcController=null;if(mcCurrentStatus)mcApplyStatus(mcCurrentStatus);}
+        }
+    })();
+    mcSyncPromise=task;return task;
 }
 function mcResourceChanged(load=true){
     const resource=document.getElementById('mc-resource').value;

@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const storage = require('./storage');
 const { promisify } = require('util');
-const { createMinecards, collectionData, localData } = require('./minecards');
+const { createMinecards, collectionData, localData, updateCardImages, updateCardPowers } = require('./minecards');
 const ArenaRules = require('./arena-rules');
 
 const scrypt = promisify(crypto.scrypt);
@@ -145,12 +145,13 @@ function normalizeArenaFavorites(data,user) {
     return null;
 }
 
-async function handleApi(req, res, url) {
+function hasValidOrigin(req) {
     const origin = req.headers.origin;
-    if (origin) {
-        const host = req.headers.host;
-        if (origin !== `${storage.isCloud ? 'https' : 'http'}://${host}`) return sendJson(res, 403, { error:'Origine non autorisée.' });
-    }
+    return !origin||origin===`${storage.isCloud?'https':'http'}://${req.headers.host}`;
+}
+
+async function handleApi(req, res, url) {
+    if(!hasValidOrigin(req))return sendJson(res,403,{error:'Origine non autorisée.'});
 
     const db = readDb();
     if (req.method === 'POST' && url.pathname === '/api/register') {
@@ -323,6 +324,10 @@ async function handleApi(req, res, url) {
         const arenaError=normalizeArenaFavorites(data,current);
         if(arenaError)return sendJson(res,409,{error:arenaError});
         current.data = data;
+        // Un favori sauvegardé pendant l'import ne rétablit pas les anciennes
+        // images et puissances après la validation de la nouvelle collection.
+        const catalog=(current.minecards?.cards||[]).map(card=>({id:card._minecards.cardId,name:card.nom,image:card.image,...card._minecards}));
+        if(catalog.length){updateCardImages(current,catalog);updateCardPowers(current,catalog);}
         writeDb(latest);
         return sendJson(res, 200, { ok:true });
     }
@@ -333,6 +338,12 @@ const minecards = createMinecards({readDb,writeDb,readBody,sendJson,getUserFromR
 async function handler(req, res) {
     try {
         const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
+        if(req.method==='POST'&&url.pathname==='/api/minecards/sync/step'){
+            if(!hasValidOrigin(req))return sendJson(res,403,{error:'Origine non autorisée.'});
+            // Les réservations et validations sont atomiques ; l'attente réseau
+            // a lieu entre deux transactions, sans bloquer les autres profils.
+            return await minecards.step(req,res);
+        }
         if (url.pathname.startsWith('/api/')) {
             if (!storage.isCloud) return await handleApi(req, res, url);
             // Ne confirmer au navigateur qu’après la validation atomique du stockage.

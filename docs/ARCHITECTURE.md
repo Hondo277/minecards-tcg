@@ -28,7 +28,7 @@ Le document `<MINECARDS_STORAGE_PREFIX>:state` contient comptes, connexions Mine
 
 Une commande Lua confirme la propriété du verrou avant d’enregistrer le document et de libérer le verrou. Le serveur retient la réponse API jusqu’à cette confirmation. Les sessions expirées sont nettoyées lors des transactions. Le verrou expire après 270 secondes ; la fonction dispose de 240 secondes.
 
-Ce modèle vise une petite application personnelle. Les lectures partagent aussi le verrou. Une synchronisation longue peut rendre une autre opération temporairement indisponible (`503`). Pour une forte activité simultanée, prévoir des enregistrements individuels et des opérations plus ciblées.
+Ce modèle vise une petite application personnelle. Les lectures partagent aussi le verrou. Les étapes de synchronisation libèrent ce verrou pendant l'attente réseau ; les autres routes, dont les lectures de l'explorateur, restent sérialisées pendant leur traitement. Une contention reste possible (`503`). Pour une forte activité simultanée, prévoir des enregistrements individuels et des opérations plus ciblées.
 
 ## Compte et authentification
 
@@ -56,7 +56,13 @@ La synchronisation :
 5. Actualise les cartes correspondantes des favoris et leurs totaux.
 6. Enregistre seulement après la lecture complète ; une erreur conserve la collection précédente.
 
-En local, le bouton lance un travail en mémoire, répond `202` et l’interface consulte l’avancement. Sur Vercel, la synchronisation est attendue dans la requête et répond `200` à sa fin. Le budget de lecture est de 200 secondes, avec un délai réseau de 20 secondes par appel.
+En local comme sur Vercel, `POST /sync` démarre ou retrouve un travail et répond `202`. Le navigateur conduit ensuite les appels `POST /sync/step` page par page. `minecards-sync.js` réserve une page et un créneau de quota dans une transaction, appelle `minecards-remote.js` hors du verrou Redis (délai réseau de 20 secondes), puis valide la page dans une seconde transaction. La session et l'empreinte de connexion sont vérifiées aux deux étapes. Un bail par page et les identifiants travail/page empêchent un retour ancien ou un deuxième onglet de doubler une page.
+
+Les pages sont stockées provisoirement dans le travail (mémoire en local, document privé Redis sur Vercel). Seule la dernière page remplace la collection et rafraîchit les favoris, dans la même validation atomique. La réponse finale inclut les données d'affichage et évite une lecture supplémentaire, sauf si une sauvegarde utilisateur intervenue pendant l'import impose une relecture. Une sauvegarde de favori concurrente conserve les dernières images et puissances du catalogue déjà validé.
+
+Un travail interrompu se reprend pendant 15 minutes après son démarrage ; fermer l'onglet suspend les étapes. Un redémarrage du serveur local perd le travail provisoire, tandis que Vercel le conserve dans Redis. Deux nouvelles tentatives sont possibles par page en cas de panne temporaire. Une modification de clé invalide le travail. Les pages provisoires, baux et empreintes ne sont jamais exposés dans `/status`.
+
+L'interface affiche le nombre de pages lues et de cartes reçues, sans inventer de pourcentage quand le total est inconnu. L'actualisation automatique est proposée toutes les 30 secondes dans un onglet visible, hors saisie et édition ; retour sur l'onglet et reconnexion réseau déclenchent aussi une actualisation si nécessaire. Les appels simultanés partagent une seule promesse. Un changement de profil annule la lecture côté navigateur et empêche un ancien retour d'actualiser le nouveau profil. Les cartes et favoris identiques ne sont pas redessinés.
 
 La file espace les lectures de 1,1 seconde. Les réponses ne sont pas mises en cache et les appels `fetch` utilisent `cache: 'no-store'`, conformément à la documentation du fournisseur. La copie de collection explicitement synchronisée reste persistante. En cloud, le dernier instant de lecture et le délai de blocage sont persistés. Le client respecte `Retry-After`, ainsi que `X-RateLimit-Remaining: 0` et `X-RateLimit-Reset` pour attendre la prochaine fenêtre. Le délai est transmis au navigateur dans le JSON et l’en-tête `Retry-After` des erreurs `429`.
 

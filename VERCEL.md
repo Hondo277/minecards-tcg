@@ -36,13 +36,13 @@ Importer le dépôt dans Vercel (ou déployer le dossier avec Vercel CLI).
 - Output : `public`.
 - Les routes et la durée de fonction sont configurées dans `vercel.json`.
 
-Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js` et `arena-builder.js`. La fonction `api/index.js` traite les routes `/api/*`. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
+Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js` et `arena-builder.js`. La fonction `api/index.js` traite les routes `/api/*` et importe notamment `minecards.js`, `minecards-remote.js` et `minecards-sync.js` : inclure ces modules serveur lors d'un déploiement avec une liste explicite de fichiers. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
 
 ## Fonctionnement et limites
 
-Les données privées sont stockées dans un document Redis. Les requêtes sont sérialisées par un verrou distribué ; la validation atomique du document précède toute réponse de réussite. Ce modèle convient à cette application personnelle et évite les écrasements entre instances. Lors d’une longue synchronisation, une autre opération peut demander de réessayer quelques secondes plus tard. Pour un site avec beaucoup d’utilisateurs simultanés, migrer vers des enregistrements individuels dans une base relationnelle.
+Les données privées sont stockées dans un document Redis. Les transactions sont sérialisées par un verrou distribué ; la validation atomique du document précède toute réponse de réussite. La synchronisation libère le verrou pendant ses lectures réseau, afin que d'autres opérations puissent accéder au stockage entre ses étapes. Les autres routes conservent leur transaction habituelle ; une contention reste possible. Pour un site avec beaucoup d'utilisateurs simultanés, migrer vers des enregistrements individuels dans une base relationnelle.
 
-Sur Vercel, la synchronisation MineCards est attendue dans la requête HTTP, au lieu de lancer une tâche en mémoire après la réponse. Le budget applicatif est de 200 secondes pour la lecture paginée, avec un délai réseau maximum de 20 secondes par appel ; la fonction dispose de 240 secondes. Une lecture incomplète conserve la collection précédente.
+Sur Vercel, le navigateur conduit la synchronisation page par page via `/api/minecards/sync/step`. Chaque requête attend sa lecture réseau (20 secondes maximum par appel) et sa validation ; aucune tâche ne dépend de l'exécution après la réponse. Le travail est conservé dans Redis et peut reprendre pendant 15 minutes après son démarrage, y compris depuis une autre instance. La fonction dispose de 240 secondes par requête. Une lecture incomplète conserve la collection précédente ; seule la dernière page déclenche le remplacement complet. Le quota distant et ses délais de reprise restent respectés.
 
 Le corps des requêtes de l’application est limité à 4 Mio pour rester sous la limite de transport Vercel. Les quotas et limites de taille du stockage Upstash choisi s’appliquent aussi. Configurer les sauvegardes du fournisseur pour protéger la copie distante.
 

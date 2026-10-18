@@ -39,7 +39,8 @@ La sauvegarde filtre les cartes importées pour ne pas les transformer en cartes
 | GET | `/api/minecards/status` | Configuration, version, dernier import, quantités, avancement |
 | POST | `/api/minecards/connect` | Valider puis conserver la clé privée : `{ "key": "CLE_PERSONNELLE" }` |
 | POST | `/api/minecards/disconnect` | Retirer la clé, conserver la collection importée |
-| POST | `/api/minecards/sync` | Synchroniser toutes les pages de sa collection disponible |
+| POST | `/api/minecards/sync` | Démarrer ou reprendre un import complet, réponse `202` |
+| POST | `/api/minecards/sync/step` | Lire et valider la prochaine page : `{ "jobId": "UUID", "page": 1 }` |
 | GET | `/api/minecards/explore/:resource` | Explorer une ressource autorisée |
 | GET | `/api/minecards/explore/:resource/:id` | Lire un détail pris en charge |
 
@@ -47,7 +48,11 @@ Ressources : `cards`, `collection`, `boosters`, `profiles`, `arenas`, `auctions`
 
 Pagination : `page` de 1 à 1 000 et `limit` de 1 à 100, sauf boosters. Filtres : `q`, `rarity`, `category`, `dimension` pour catalogue et collection ; `q` pour profils ; `status` pour enchères. Les paramètres non pris en charge sont refusés.
 
-En local, `/sync` répond `202` et `/status` donne l’avancement. Sur Vercel, la requête attend la fin et répond `200`. La clé réelle reste sur le serveur et n’est pas renvoyée dans les réponses.
+Le même protocole s'applique en local et sur Vercel. `/sync` répond rapidement `202` avec l'état courant. Le navigateur appelle ensuite `/sync/step` pour chaque `job.nextPage`. Chaque étape répond `200` avec l'état confirmé ; la dernière contient aussi `data` (collection fusionnée et favoris). `/status` permet de retrouver l'étape après une interruption. Aucun travail ne continue en arrière-plan après une réponse.
+
+L'état expose `syncProtocol: 2`, `autoSyncMs: 30000` et un `job` avec `id`, `running`, `phase`, `pages`, `received`, `nextPage`, dates et éventuellement `retryAt`, `error`, `durationMs`. `nextPollMs` indique le délai avant de redemander une étape en cours. `received` compte les entrées différentes avec une quantité positive, pas les exemplaires. Le client attend `retryAt` avant de reprendre. Une étape répétée ou ancienne ne peut pas ajouter deux fois la même page. La collection précédente reste active jusqu'à `phase: "complete"`.
+
+La reprise expire 15 minutes après le début de l'import ; une nouvelle synchronisation est alors nécessaire. Une clé remplacée ou déconnectée invalide les pages déjà lues. Les pages provisoires et l'empreinte de connexion sont privées ; aucune clé, empreinte ou donnée de compte sensible n'est renvoyée par l'état.
 
 ### Contrat MineCards consulté le 18 octobre 2026
 
@@ -55,7 +60,7 @@ La [documentation officielle](https://minecards.vercel.app/developpeurs) et son 
 
 Les lectures distantes ne sont pas mises en cache. Les filtres vides, répétés, inconnus, les raretés / statuts hors liste et les identifiants de détail invalides sont refusés avant d’utiliser le quota distant. Les listes suivent `nextPage` et la limite de navigation de 1 000 pages. Une synchronisation incomplète ou incohérente conserve la collection précédente.
 
-Une erreur de quota répond avec `{ "error": "message", "retryAfter": 60 }` et un en-tête `Retry-After` exprimé en secondes ; la durée réelle vient de la réponse distante. Un travail de synchronisation échoué peut exposer `job.retryAt` (ISO 8601) dans `/status`. Une indisponibilité distante reste un `503`. Les puissances utilisent toujours `power`, sans modifier l’attaque et la défense déjà importées.
+Les lectures ordinaires refusées par le quota répondent avec `{ "error": "message", "retryAfter": 60 }` et un en-tête `Retry-After` exprimé en secondes ; la durée réelle vient de la réponse distante. Pour `/sync/step`, un quota ou une panne temporaire apparaît dans `job.error`, avec `phase: "waiting"` et `job.retryAt` (ISO 8601) tant qu'une reprise est possible. Les erreurs distantes temporaires autorisent deux nouvelles tentatives par page ; au-delà, `running` passe à `false` et `phase` à `"error"`. Les puissances utilisent toujours `power`, sans modifier l'attaque et la défense déjà importées.
 
 ## Administration
 
@@ -73,4 +78,4 @@ Aucune suppression n’est envoyée à MineCards. Le serveur protège le compte 
 
 ## Codes usuels
 
-`400` données invalides · `401` connexion requise ou clé distante refusée · `403` droits / origine refusés · `404` absence · `409` conflit · `413` requête trop volumineuse · `429` limitation · `502` erreur distante · `503` stockage indisponible / occupé · `504` délai de synchronisation dépassé.
+`400` données invalides · `401` connexion requise ou clé distante refusée · `403` droits / origine refusés · `404` absence · `409` conflit · `413` requête trop volumineuse · `429` limitation · `502` erreur distante · `503` stockage indisponible / occupé.
