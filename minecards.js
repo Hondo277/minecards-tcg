@@ -107,7 +107,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
     function status(userId) {
         const user=readDb().users.find(u=>u.id===userId);
         const connection=readConnections()[userId];
-        return {configured:!!connection,apiVersion:API_VERSION,lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),job:syncEngine.publicJob(jobs.get(userId)),readOnly:true,syncProtocol:2,autoSyncMs:30000};
+        return {configured:!!connection,apiVersion:API_VERSION,lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),dataRevision:user?.dataRevision||0,job:syncEngine.publicJob(jobs.get(userId)),readOnly:true,syncProtocol:2,autoSyncMs:30000};
     }
     function saveSyncedCollection(userId,items,startedAt,pages){
         const db=readDb(),user=db.users.find(u=>u.id===userId);

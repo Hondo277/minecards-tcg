@@ -36,7 +36,9 @@ Importer le dépôt dans Vercel (ou déployer le dossier avec Vercel CLI).
 - Output : `public`.
 - Les routes et la durée de fonction sont configurées dans `vercel.json`.
 
-Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js` et `arena-builder.js`. La fonction `api/index.js` traite les routes `/api/*` et importe notamment `minecards.js`, `minecards-remote.js` et `minecards-sync.js` : inclure ces modules serveur lors d'un déploiement avec une liste explicite de fichiers. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
+Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js`, `arena-builder.js`, `workspace-ui.js` et `admin-ui.js`. La fonction `api/index.js` traite les routes `/api/*` et importe notamment `minecards.js`, `minecards-remote.js`, `minecards-sync.js` et `workspace-service.js` : inclure ces modules serveur lors d'un déploiement avec une liste explicite de fichiers. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
+
+Les carnets, suspensions, annonces, réglages d'inscription et journal admin utilisent la même base privée. Aucun nouveau service ni variable d'environnement n'est nécessaire. Les champs absents d'une ancienne base sont pris en charge sans effacer les comptes existants.
 
 ## Fonctionnement et limites
 

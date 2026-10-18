@@ -14,15 +14,22 @@ Le navigateur conserve un cookie de session `HttpOnly`. Les appels authentifiés
 | POST | `/api/logout` | Fermer la session courante |
 | PATCH | `/api/profile` | Modifier identité, images et deck mis en avant |
 | PUT | `/api/password` | Modifier le mot de passe : `currentPassword`, `newPassword`, `confirmPassword` |
+| GET | `/api/sessions` | Sessions actives du compte : identifiant public, navigateur déclaré, dates et session courante |
+| POST | `/api/sessions/revoke` | Révoquer une autre session avec `{ "id": "UUID" }` ou toutes les autres avec `{ "others": true }` |
+| GET | `/api/export` | Export personnel JSON : profil public, données fusionnées et carnet |
 
 `PATCH /api/profile` attend `displayName`, `bio`, `avatar` et `accent`. Champs optionnels : `avatarImage`, `bannerImage`, `featuredDeckId`. Une chaîne vide retire une image ou le choix explicite d’un deck ; un champ optionnel absent conserve sa valeur. Le serveur valide les images et l’appartenance du deck.
+
+Les identifiants publics des sessions sont distincts des empreintes utilisées pour l'authentification. La révocation ne permet pas de fermer sa propre session courante ; utiliser `/api/logout`. Le navigateur affiché est le `User-Agent` déclaré lors de la connexion, sans garantie d'identité de l'appareil. Les anciennes sessions sans date ou navigateur restent révocables. Une suspension de compte révoque ses sessions et interdit l'accès même avec un ancien cookie.
+
+`/api/export` exclut les clés MineCards, sels, empreintes de mots de passe, jetons et empreintes de session. Cet export de consultation n'est pas un fichier de restauration complet du serveur.
 
 ## Collection
 
 | Méthode | Route | Fonction |
 | --- | --- | --- |
 | GET | `/api/data` | Collection fusionnée et favoris du compte courant |
-| PUT | `/api/data` | Enregistrer `{ "data": { "cards": [], "favoriteDecks": [] } }` |
+| PUT | `/api/data` | Enregistrer `{ "revision": 0, "data": { "cards": [], "favoriteDecks": [] } }` |
 
 Une carte utilise `id`, `nom`, `rarete`, `valeur`, `attaque`, `defense`, `image`. `valeur` désigne la puissance. Les cartes importées exposent `_minecards.cardId`, `_minecards.quantity` et, après synchronisation, `_minecards.power` (puissance officielle). Les favoris peuvent enregistrer le mode du créateur : `closest`, `ceiling` ou `strongest`.
 
@@ -31,6 +38,21 @@ La synchronisation conserve aussi dans `_minecards` les attributs officiels `cat
 Un favori `mode: "arena"` contient trois entrées `cards`, de zéro à deux entrées `supports`, `arenaId` (`overworld`, `nether`, `end`), `tactic` (`balanced`, `aggressive`, `defensive`) et `teamCost`. `totalPower` est un repère de collection pour les trois créatures ; `targetPower` vaut `null`. Les nouvelles compositions et changements d’équipe sont validés côté serveur avec le stock réellement synchronisé : catégories, activité, raretés, unicité et coût total ≤ 18. Les instantanés des anciens favoris restent consultables si une carte quitte la collection. Une composition refusée renvoie `409` avec la raison.
 
 La sauvegarde filtre les cartes importées pour ne pas les transformer en cartes locales. Les favoris gardent leurs instantanés. Limites : 1 000 cartes locales et 500 decks par compte.
+
+`GET /api/data` renvoie aussi `revision`. La sauvegarde doit transmettre cette dernière valeur et reçoit la nouvelle révision confirmée. Une révision absente ou dépassée renvoie `409` avec `staleData: true`, sans écriture : recharger les données avant de réappliquer la modification. Les sauvegardes locales / favoris et suppressions admin avancent cette révision. Les mises à jour de métadonnées depuis MineCards conservent la révision ; elles sont réappliquées côté serveur lors d'une sauvegarde. L'état MineCards expose `dataRevision` pour appliquer correctement la copie finale.
+
+### Carnet privé
+
+| Méthode | Route | Fonction |
+| --- | --- | --- |
+| GET | `/api/notebook` | `{ "entries": { "mc:card_id": { "favorite": true, "note": "…", "updatedAt": "ISO 8601" } } }` |
+| PATCH | `/api/notebook` | Enregistrer une entrée avec `key`, `favorite` (booléen) et `note` (chaîne) |
+
+Clés stables : `mc:<cardId>` ou `local:<id>`. Une nouvelle entrée doit correspondre à une carte possédée. Limites : 600 caractères par note et 2 000 entrées par compte. Une note vide avec `favorite: false` efface l'entrée. Les entrées existantes peuvent être retirées même si la carte a quitté la collection. Le carnet est séparé de `PUT /api/data` et de la synchronisation API ; il n'est pas inclus dans les fiches admin des autres profils.
+
+## Informations du site
+
+`GET /api/site` est public et renvoie uniquement `message`, `tone` (`info`, `warning`, `success`) et `registrationsOpen`. Les inscriptions sont autorisées par défaut. Une fermeture renvoie `403` lors de l'inscription ; les connexions des comptes existants restent possibles.
 
 ## MineCards
 
@@ -73,8 +95,20 @@ Toutes ces routes exigent le rôle `admin`.
 | DELETE | `/api/admin/users/:userId` | Supprimer un compte membre éligible |
 | DELETE | `/api/admin/users/:userId/cards/:cardId` | Supprimer une carte locale d’un autre compte |
 | DELETE | `/api/admin/users/:userId/decks/:deckId` | Supprimer un favori d’un autre compte |
+| GET | `/api/admin/overview` | Profils enrichis, statistiques cumulées, stockage utilisé et réglages du site |
+| PATCH | `/api/admin/users/:userId/access` | Suspendre / réactiver un membre : `{ "suspended": true, "reason": "motif" }` |
+| POST | `/api/admin/users/:userId/sessions/revoke` | Déconnecter toutes les sessions d'un membre |
+| POST | `/api/admin/users/:userId/bulk-delete` | Supprimer une sélection : `{ "kind": "cards", "ids": ["1", "2"] }` ; `kind` vaut `cards` ou `decks` |
+| GET | `/api/admin/audit` | Les 400 dernières actions admin enregistrées, de la plus récente à la plus ancienne |
+| PATCH | `/api/admin/settings` | Réglages : `message` (300 caractères maximum), `tone`, `registrationsOpen` (booléen) |
 
 Aucune suppression n’est envoyée à MineCards. Le serveur protège le compte administrateur courant, les autres comptes administrateurs et les opérations réservées aux données des autres profils.
+
+Les nouvelles actions d'accès, de révocation et de suppression groupée sont réservées aux comptes membres d'autres utilisateurs. La suppression groupée exige de 1 à 100 identifiants distincts existants, refuse les cartes importées et ne supprime rien si la sélection est devenue incohérente (`409`). Une suppression de favori retire son éventuelle mise en avant du profil.
+
+Les résumés de compte exposent `displayName`, `suspended`, `suspensionReason`, `lastLoginAt`, `cardCount`, `copyCount`, `duplicateCount`, `favoriteDeckCount`, `sessionCount`, `connected`, `lastSync` et un état de synchronisation limité. Aucune clé, page provisoire ou empreinte de connexion n'est incluse. Les cartes uniques sont cumulées par profil, pas dédupliquées entre comptes.
+
+Le journal contient date, action, administrateur, compte ciblé et détail limité à 300 caractères. Il couvre les mutations du panneau depuis cette version, sans reconstituer les actions historiques. Ce journal borné dans la même base n'est pas un registre immuable.
 
 ## Codes usuels
 

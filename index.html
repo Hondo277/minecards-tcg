@@ -350,6 +350,7 @@
 
     <!-- Contenu Principal -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+        <div id="site-announcement" class="site-announcement" role="status" hidden></div>
         <div class="workspace-toolbar">
             <div>
                 <p class="workspace-kicker">MINECARDS / TON ESPACE</p>
@@ -358,8 +359,7 @@
             </div>
             <button type="button" id="profile-chip" class="profile-chip" onclick="switchTab('profile')" title="Ouvrir mon profil" aria-label="Ouvrir mon profil"><i class="fa-solid fa-user" aria-hidden="true"></i><span id="profile-name"></span></button>
         </div>
-
-
+        <p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>
         <section id="section-collection" class="tab-section space-y-8" aria-label="Ma collection">
             <div class="collection-overview">
                 <div class="overview-lead"><span class="eyebrow">LE CARNET DE COLLECTION</span><h3>Chaque carte<br>ouvre le jeu.</h3><p>Retrouve tes cartes et prépare ta prochaine combinaison.</p><button type="button" onclick="switchTab('builder')" class="text-link">Composer un deck <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button><div class="collection-duplicate-counter" title="Pour chaque carte, on retire un original : 3 exemplaires donnent 2 doublons."><i class="fa-solid fa-copy" aria-hidden="true"></i><div><span>Doublons</span><small>Hors exemplaire original</small></div><strong id="stat-duplicates" aria-live="polite" aria-label="Nombre total de doublons, originaux exclus">0</strong></div></div>
@@ -377,6 +377,8 @@
                     <label class="filter-field" for="rarity-filter"><span>Rareté</span><select id="rarity-filter" onchange="filterAndRenderCards()"><option value="all">Toutes les raretés</option><option value="Netherite">Netherite</option><option value="Diamant">Diamant</option><option value="Or">Or</option><option value="Fer">Fer</option><option value="Cuivre">Cuivre</option><option value="Charbon">Charbon</option></select></label>
                     <label class="filter-field" for="sort-select"><span>Classement</span><select id="sort-select" onchange="filterAndRenderCards()"><option value="valeur-desc">Puissance décroissante</option><option value="valeur-asc">Puissance croissante</option><option value="duplicates-desc">Doublons : du plus au moins</option><option value="duplicates-asc">Doublons : du moins au plus</option><option value="nom-asc">Nom A → Z</option><option value="nom-desc">Nom Z → A</option><option value="attaque-desc">Attaque max</option><option value="defense-desc">Défense max</option></select></label>
                 </div>
+                <details class="collection-advanced glass-panel"><summary><i class="fa-solid fa-sliders" aria-hidden="true"></i> Affiner ma collection <small>Filtres mémorisés · recherche avec la touche /</small></summary><div class="workspace-filter-grid"><label>Origine<select id="collection-source" onchange="filterAndRenderCards()"><option value="all">Toutes les cartes</option><option value="minecards">MineCards</option><option value="local">Locales</option></select></label><label>Catégorie<select id="collection-category" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Dimension<select id="collection-dimension" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Exemplaires<select id="collection-quantity" onchange="filterAndRenderCards()"><option value="all">Tous</option><option value="duplicates">Avec doublons</option><option value="single">Un seul exemplaire</option></select></label><label>Puissance minimum<input id="collection-min" type="number" min="0" max="1000000" placeholder="Sans minimum" oninput="filterAndRenderCards()"></label><label>Puissance maximum<input id="collection-max" type="number" min="0" max="1000000" placeholder="Sans maximum" oninput="filterAndRenderCards()"></label><label class="workspace-check"><input id="collection-pinned" type="checkbox" onchange="filterAndRenderCards()"> Mes cartes favorites uniquement</label></div></details>
+                <div class="collection-export-bar"><span>Retrouve tes notes depuis la fiche de chaque carte.</span><div class="workspace-actions"><button type="button" class="secondary-button" onclick="workspaceReloadAccount()">Recharger mes données</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('csv')">Exporter le CSV filtré</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('json')">Exporter le JSON filtré</button></div></div>
                 <div class="library-caption"><div><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><span id="duplicate-sort-summary" class="duplicate-sort-summary hidden" role="status"></span><span id="collection-sync-state" class="collection-sync-state" role="status" aria-live="polite"></span></div><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
                 <div id="cards-grid" class="card-library-grid"></div>
                 <div id="empty-state" class="hidden interface-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h3>Aucune carte à afficher</h3><p>Ajoute ta première carte ou ajuste tes filtres.</p><button type="button" class="workspace-add-button" onclick="openAddModal()">Ajouter une carte</button></div>
@@ -439,6 +441,8 @@
 
         <section id="section-decks" class="tab-section hidden space-y-6" aria-label="Decks favoris">
             <div class="library-heading"><div><span class="eyebrow">TES COMBINAISONS SAUVEGARDÉES</span><h3>Prêts pour la prochaine partie.</h3></div><button type="button" class="secondary-button" onclick="switchTab('builder')"><i class="fa-solid fa-plus" aria-hidden="true"></i> Composer un deck</button></div>
+            <div class="deck-library-toolbar glass-panel"><label>Recherche<input id="deck-search" type="search" placeholder="Nom du deck ou d’une carte…" oninput="renderFavoriteDecks()"></label><label>Format<select id="deck-kind" onchange="renderFavoriteDecks()"><option value="all">Tous</option><option value="power">Trios</option><option value="arena">Arènes</option></select></label><label>Classer<select id="deck-sort" onchange="renderFavoriteDecks()"><option value="recent">Plus récents</option><option value="power-desc">Puissance décroissante</option><option value="power-asc">Puissance croissante</option><option value="name">Nom A → Z</option></select></label><button id="deck-compare-button" class="secondary-button" type="button" onclick="workspaceCompareDecks()" disabled>Comparer (0/2)</button><span id="deck-visible-count" role="status"></span></div>
+            <p id="deck-no-results" class="admin-no-records" hidden>Aucun deck pour ces filtres.</p>
             <div id="favorite-decks-grid" class="favorite-library"></div>
             <div id="no-favorites-state" class="hidden interface-empty"><i class="fa-regular fa-star" aria-hidden="true"></i><h3>Une place pour tes meilleurs trios.</h3><p>Compose un deck dans l’atelier et enregistre-le ici.</p><button type="button" class="workspace-add-button" onclick="switchTab('builder')">Ouvrir l’atelier</button></div>
         </section>
@@ -514,23 +518,29 @@
                     </form>
                 </div>
             </div>
+            <div class="profile-settings glass-panel account-tools"><div class="admin-section-heading"><div><span class="eyebrow">MON COMPTE</span><h3>Sessions et données personnelles</h3></div><button class="secondary-button" type="button" onclick="workspaceExportAccount()">Télécharger mes données</button></div><p>Consulte les sessions de ton compte et ferme celles que tu n’utilises plus. L’export contient ton profil, tes cartes, tes decks et tes notes privées.</p><div class="workspace-actions"><button class="secondary-button" type="button" onclick="workspaceLoadSessions()">Afficher / actualiser mes sessions</button><button class="secondary-button" type="button" onclick="workspaceRevokeSessions()">Déconnecter mes autres sessions</button></div><div id="account-sessions" class="account-sessions" aria-live="polite"></div></div>
         </section>
         <section id="section-admin" class="tab-section hidden space-y-6" aria-labelledby="admin-heading">
             <div class="admin-heading glass-panel">
                 <div class="admin-emblem"><i class="fa-solid fa-shield-halved"></i></div>
                 <div><p class="admin-kicker">ESPACE SÉCURISÉ</p><h2 id="admin-heading">Administration</h2><p class="text-xs text-gray-400 mt-1">Vue d’ensemble des profils et de leurs collections.</p></div>
             </div>
+            <div class="admin-command-bar"><div><p id="admin-runtime-summary" class="admin-search-count"></p><p id="admin-feedback" class="workspace-feedback" role="status" aria-live="polite"></p></div><div class="workspace-actions"><button class="secondary-button" type="button" onclick="renderAdminPanel()">Actualiser le panneau</button><button class="secondary-button" type="button" onclick="adminExportUsers()">Exporter les profils CSV</button></div></div>
             <div id="admin-stats" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
             <div class="admin-layout">
                 <div class="admin-users-panel glass-panel">
                     <div class="admin-list-heading"><div><h3>Profils</h3><p>Comptes enregistrés sur ce serveur</p></div><input id="admin-search" type="search" placeholder="Rechercher un profil…" oninput="renderAdminUsers()"></div>
+                    <div class="admin-user-filters"><label>Rôle<select id="admin-role-filter" onchange="renderAdminUsers()"><option value="all">Tous</option><option value="admin">Administrateurs</option><option value="user">Membres</option></select></label><label>État<select id="admin-state-filter" onchange="renderAdminUsers()"><option value="all">Tous</option><option value="active">Actifs</option><option value="suspended">Suspendus</option><option value="connected">Reliés à MineCards</option></select></label><label>Classer<select id="admin-user-sort" onchange="renderAdminUsers()"><option value="name">Identifiant A → Z</option><option value="cards">Plus de cartes</option><option value="duplicates">Plus de doublons</option><option value="recent">Plus récents</option></select></label></div><p id="admin-user-count" class="admin-search-count" role="status"></p>
                     <div id="admin-users-list" class="admin-users-list"></div>
                 </div>
                 <div id="admin-user-detail" class="admin-detail glass-panel"><div class="admin-empty"><i class="fa-solid fa-users"></i><h3>Sélectionne un profil</h3><p>Choisis un compte pour consulter sa collection et ses decks.</p></div></div>
             </div>
+            <div class="admin-bottom-grid"><section class="admin-detail glass-panel"><div class="admin-section-heading"><div><span class="eyebrow">TRACER LES CHANGEMENTS</span><h3>Journal d’administration</h3></div><button class="secondary-button" type="button" onclick="adminExportAudit()">Exporter CSV</button></div><div class="admin-record-filters"><label>Recherche<input id="admin-audit-search" type="search" placeholder="Compte, administrateur, détail…" oninput="adminRenderAudit()"></label><label>Action<select id="admin-audit-action" onchange="adminRenderAudit()"><option value="all">Toutes les actions</option><option value="user.suspend">Suspension</option><option value="user.reactivate">Réactivation</option><option value="user.sessions.revoke">Déconnexion</option><option value="user.delete">Suppression de compte</option><option value="record.delete">Suppression d’élément</option><option value="records.delete">Suppression groupée</option><option value="site.settings">Réglages du site</option></select></label></div><p id="admin-audit-count" class="admin-search-count" role="status"></p><div id="admin-audit-list" class="admin-audit-list"></div></section><section class="admin-detail glass-panel"><span class="eyebrow">INFORMER LES COLLECTIONNEURS</span><h3>Réglages du site</h3><form id="admin-site-settings" class="settings-form" onsubmit="adminSaveSettings(event)"><label>Annonce visible sur le site<textarea name="message" maxlength="300" rows="3" placeholder="Information, mise à jour, événement…"></textarea></label><label>Style<select name="tone"><option value="info">Information</option><option value="success">Bonne nouvelle</option><option value="warning">Attention</option></select></label><label class="workspace-check"><input type="checkbox" name="registrationsOpen" checked> Autoriser les nouveaux comptes</label><small>Une annonce vide retire la bannière. Fermer les inscriptions laisse les comptes existants accessibles.</small><button class="workspace-add-button" type="submit">Enregistrer les réglages</button></form></section></div>
         </section>
 
     </main>
+    <dialog id="workspace-card-dialog" class="workspace-dialog" aria-labelledby="workspace-card-title"><div class="workspace-dialog-heading"><h2 id="workspace-card-title">Fiche de carte</h2><button type="button" class="secondary-button" onclick="document.getElementById('workspace-card-dialog').close()" aria-label="Fermer la fiche">Fermer ✕</button></div><div id="workspace-card-content" class="workspace-card-content"></div><form onsubmit="workspaceSaveCardNote(event)" class="settings-form"><label class="workspace-check"><input id="workspace-card-pin" type="checkbox"> Ajouter à mes cartes favorites</label><label>Ma note privée<textarea id="workspace-card-note" maxlength="600" rows="3" placeholder="Idée de deck, stratégie, carte à échanger…"></textarea></label><small>600 caractères maximum. Tes notes sont liées à ton compte.</small><button class="workspace-add-button" type="submit">Enregistrer dans mon carnet</button><p id="workspace-card-note-message" role="status" aria-live="polite"></p></form></dialog>
+    <dialog id="deck-compare-dialog" class="workspace-dialog" aria-labelledby="deck-compare-title"><div class="workspace-dialog-heading"><h2 id="deck-compare-title">Comparer mes decks</h2><button type="button" class="secondary-button" onclick="document.getElementById('deck-compare-dialog').close()">Fermer ✕</button></div><div id="deck-compare-content"></div></dialog>
 
     <!-- Modal d'Ajout / Édition de Carte -->
     <div id="card-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
@@ -621,6 +631,7 @@
         let activeProfile = null;
         let profileSaveQueue = Promise.resolve();
         let profileDataRevision = 0;
+        let profileServerRevision = 0;
         let adminUsers = [];
         let selectedAdminUserId = null;
 
@@ -731,7 +742,7 @@
             }
             let result = {};
             try { result = await response.json(); } catch (error) { /* Le serveur a renvoyé une réponse sans JSON. */ }
-            if (!response.ok) throw Object.assign(new Error(result.error || 'La requête a échoué.'), { status:response.status, retryAfter:result.retryAfter || Number(response.headers.get('retry-after')) || null });
+            if (!response.ok) throw Object.assign(new Error(result.error || 'La requête a échoué.'), { status:response.status, retryAfter:result.retryAfter || Number(response.headers.get('retry-after')) || null,staleData:result.staleData===true });
             return result;
         }
 
@@ -753,6 +764,8 @@
         }
 
         function showAuthScreen() {
+            mcStop();
+            workspaceReset();
             activeProfile = null;
             document.body.classList.add('auth-loading');
             document.getElementById('auth-screen').classList.remove('hidden');
@@ -793,23 +806,27 @@
         }
 
         async function loadProfile(user) {
+            mcStop();
             const result = await apiRequest('/api/data');
             const data = result.data && typeof result.data === 'object' ? {
                 cards:Array.isArray(result.data.cards) ? result.data.cards : [],
                 favoriteDecks:Array.isArray(result.data.favoriteDecks) ? result.data.favoriteDecks : []
             } : { cards:[], favoriteDecks:[] };
             if (!result.data || !Array.isArray(result.data.cards) || !Array.isArray(result.data.favoriteDecks)) {
-                await apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) });
+                const saved=await apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data,revision:result.revision||0 }) });
+                result.revision=saved.revision;
             }
             cards = data.cards;
             favoriteDecks = data.favoriteDecks;
+            profileServerRevision=result.revision||0;
+            showProfileScreen(user);
+            await workspaceInit(user);
             currentGeneratedDeck = null;
             localStorage.setItem('tcg_cards', JSON.stringify(cards));
             localStorage.setItem('minecard_tcg_cards_v3', JSON.stringify(cards));
             localStorage.setItem('tcg_favorite_decks', JSON.stringify(favoriteDecks));
             filterAndRenderCards();
             renderFavoriteDecks();
-            showProfileScreen(user);
             switchTab('collection');
             mcInit();
         }
@@ -924,77 +941,6 @@
             return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
         }
 
-        async function renderAdminPanel() {
-            const list = document.getElementById('admin-users-list');
-            try {
-                const result = await apiRequest('/api/admin/users');
-                adminUsers = result.users;
-                const totalCards = adminUsers.reduce((sum, user) => sum + user.cardCount, 0);
-                const totalDecks = adminUsers.reduce((sum, user) => sum + user.favoriteDeckCount, 0);
-                document.getElementById('admin-stats').innerHTML = [
-                    ['fa-users','Profils',adminUsers.length],
-                    ['fa-clone','Cartes différentes',totalCards],
-                    ['fa-star','Decks favoris',totalDecks]
-                ].map(([icon,label,value]) => `<div class="glass-panel p-5 rounded-2xl"><div class="flex items-center gap-3"><i class="fa-solid ${icon} text-lime-300"></i><span class="text-xs text-gray-400">${label}</span></div><strong class="block mt-3 font-gaming text-2xl text-white">${value}</strong></div>`).join('');
-                renderAdminUsers();
-                if (selectedAdminUserId && adminUsers.some(user => user.id === selectedAdminUserId)) await openAdminUser(selectedAdminUserId);
-                else if (adminUsers.length) await openAdminUser(adminUsers[0].id);
-            } catch (error) {
-                list.innerHTML = `<div class="admin-no-records">${escapeHtml(error.message)}</div>`;
-            }
-        }
-
-        function renderAdminUsers() {
-            const list = document.getElementById('admin-users-list');
-            if (!list) return;
-            const query = (document.getElementById('admin-search')?.value || '').trim().toLowerCase();
-            const filtered = adminUsers.filter(user => user.username.toLowerCase().includes(query));
-            list.innerHTML = filtered.length ? filtered.map(user => `
-                <button class="admin-user-row ${selectedAdminUserId === user.id ? 'selected' : ''}" type="button" onclick="openAdminUser('${escapeHtml(user.id)}')">
-                    <span><strong>${escapeHtml(user.username)}</strong><small>${user.role === 'admin' ? 'Administrateur' : 'Membre'}</small></span>
-                    <span class="admin-user-count">${user.cardCount} cartes différentes</span>
-                </button>`).join('') : '<div class="admin-no-records">Aucun profil trouvé.</div>';
-        }
-
-        async function openAdminUser(userId) {
-            selectedAdminUserId = userId;
-            renderAdminUsers();
-            const detail = document.getElementById('admin-user-detail');
-            detail.innerHTML = '<div class="admin-empty"><i class="fa-solid fa-spinner fa-spin"></i><h3>Chargement du profil…</h3></div>';
-            try {
-                const result = await apiRequest('/api/admin/users/' + encodeURIComponent(userId));
-                const cards = Array.isArray(result.data.cards) ? result.data.cards : [];
-                const decks = Array.isArray(result.data.favoriteDecks) ? result.data.favoriteDecks : [];
-                const createdAt = result.user.createdAt ? new Date(result.user.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue';
-                detail.innerHTML = `
-                    <div class="admin-detail-header"><div><h3>${escapeHtml(result.user.username)}</h3><p>Profil créé le ${escapeHtml(createdAt)}</p></div><span class="admin-role-badge">${result.user.role === 'admin' ? 'Admin' : 'Membre'}</span></div>
-                    ${result.user.id !== activeProfile.id && result.user.role !== 'admin' ? `<button class="admin-delete-button admin-delete-account" type="button" onclick="adminDeleteAccount('${escapeHtml(result.user.id)}','${escapeHtml(result.user.username)}')"><i class="fa-solid fa-user-xmark mr-1"></i> Supprimer ce compte</button>` : ''}
-                    <div class="admin-data-section"><h4>Collection · ${cards.length} carte(s) différente(s)</h4><label class="admin-collection-search" for="admin-card-search">Rechercher dans cette collection<input id="admin-card-search" type="search" placeholder="Nom, rareté ou puissance…" oninput="filterAdminCollection(this)" autocomplete="off"></label><p id="admin-card-search-count" class="admin-search-count" role="status" aria-live="polite">${cards.length} carte(s) affichée(s) sur ${cards.length}</p><div id="admin-card-search-empty" class="admin-no-records" hidden>Aucune carte ne correspond à ta recherche.</div><div class="admin-record-list">${cards.length ? cards.map(card => `<div class="admin-record admin-collection-record" data-search="${escapeHtml(card.nom+' '+card.rarete+' '+card.valeur)}"><span class="admin-record-main">${escapeHtml(card.nom)} <small class="text-gray-500">${escapeHtml(card.rarete)}</small></span><div class="admin-record-actions"><span>${escapeHtml(card.valeur)} pts</span>${card._minecards && Number(card.id) < 0 ? '<span class="text-xs text-gray-500" title="Carte synchronisée : la collection MineCards est accessible en lecture seule.">MineCards</span>' : `<button class="admin-delete-button" type="button" aria-label="Supprimer ${escapeHtml(card.nom)}" onclick="adminDeleteRecord('${escapeHtml(result.user.id)}','cards','${escapeHtml(card.id)}',this)"><i class="fa-solid fa-trash"></i></button>`}</div></div>`).join('') : '<div class="admin-no-records">Ce profil n’a pas encore ajouté de carte.</div>'}</div></div>
-                    <div class="admin-data-section"><h4>Decks favoris · ${decks.length}</h4><div class="admin-record-list">${decks.length ? decks.map(deck => `<div class="admin-record"><span class="admin-record-main">${escapeHtml(deck.name)} <small class="text-gray-500">${(Array.isArray(deck.cards) ? deck.cards : []).map(card => escapeHtml(card.nom)).join(' · ')}</small></span><div class="admin-record-actions"><span>${escapeHtml(deck.totalPower)} pts</span><button class="admin-delete-button" type="button" aria-label="Supprimer le deck ${escapeHtml(deck.name)}" onclick="adminDeleteRecord('${escapeHtml(result.user.id)}','decks','${escapeHtml(deck.id)}',this)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('') : '<div class="admin-no-records">Aucun deck favori.</div>'}</div></div>`;
-            } catch (error) {
-                detail.innerHTML = `<div class="admin-no-records">${escapeHtml(error.message)}</div>`;
-            }
-        }
-
-        async function adminDeleteAccount(userId, username) {
-            if (!confirm(`Supprimer définitivement le compte « ${username} » et toutes ses cartes et ses decks favoris ? Cette action est irréversible.`)) return;
-            try {
-                await apiRequest('/api/admin/users/' + encodeURIComponent(userId), { method:'DELETE' });
-                selectedAdminUserId = null;
-                await renderAdminPanel();
-            } catch (error) { alert(error.message); }
-        }
-
-        async function adminDeleteRecord(userId, collection, recordId, button) {
-            const label = button.closest('.admin-record')?.querySelector('.admin-record-main')?.textContent.trim() || 'élément sélectionné';
-            const kind = collection === 'cards' ? 'carte' : 'deck favori';
-            if (!confirm(`Supprimer ${kind} « ${label} » du profil sélectionné ? Cette action est irréversible.`)) return;
-            try {
-                await apiRequest(`/api/admin/users/${encodeURIComponent(userId)}/${collection}/${encodeURIComponent(recordId)}`, { method:'DELETE' });
-                await renderAdminPanel();
-            } catch (error) { alert(error.message); }
-        }
-
         async function initStorage() {
             try {
                 const result = await apiRequest('/api/me');
@@ -1023,13 +969,21 @@
             if (!activeProfile) return;
             profileDataRevision++;
             const data = { cards:JSON.parse(JSON.stringify(cards)), favoriteDecks:JSON.parse(JSON.stringify(favoriteDecks)) };
-            const saving=profileSaveQueue.then(() => apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data }) }));
-            profileSaveQueue=saving.catch(error => { console.error('Sauvegarde du profil impossible :', error); });
+            const profileId=activeProfile.id;
+            const saving=profileSaveQueue.then(async () => {
+                if(activeProfile?.id!==profileId)throw Error('Le compte connecté a changé.');
+                const result=await apiRequest('/api/data', { method:'PUT', body:JSON.stringify({ data,revision:profileServerRevision }) });
+                if(activeProfile?.id===profileId)profileServerRevision=result.revision;
+                return result;
+            });
+            profileSaveQueue=saving.catch(error => { console.error('Sauvegarde du profil impossible :', error);if(activeProfile?.id===profileId)workspaceToast('Sauvegarde non confirmée : '+error.message,true); });
             return confirmSave?saving:profileSaveQueue;
         }
 
         async function logoutProfile() {
             mcStop();
+            await workspaceNotebookQueue;
+            await workspaceDeckQueue;
             await profileSaveQueue;
             try { await apiRequest('/api/logout', { method:'POST', body:'{}' }); } catch (error) { console.error(error); }
             localStorage.removeItem('tcg_cards');
@@ -1082,6 +1036,7 @@
         }
 
         function filterAndRenderCards() {
+            const advanced=workspaceFilterState();
             const search = document.getElementById('search-input').value.toLowerCase();
             const rarity = document.getElementById('rarity-filter').value;
             const sort = document.getElementById('sort-select').value;
@@ -1091,9 +1046,9 @@
             const source=duplicatesOnly?duplicateEntries.map(entry=>entry.card):cards;
 
             let result = source.filter(card => {
-                const matchesSearch = card.nom.toLowerCase().includes(search);
+                const matchesSearch = workspaceSearchMatch(card,search);
                 const matchesRarity = rarity === 'all' || card.rarete === rarity;
-                return matchesSearch && matchesRarity;
+                return matchesSearch && matchesRarity && workspaceMatch(card,advanced);
             });
 
             result.sort((a, b) => {
@@ -1113,10 +1068,9 @@
             summary.classList.toggle('hidden',!duplicatesOnly);
             summary.textContent=duplicatesOnly?result.reduce((sum,card)=>sum+duplicateCounts.get(card),0).toLocaleString('fr-FR')+' doublon(s) affiché(s) · originaux exclus · cartes en un seul exemplaire masquées.':'';
 
+            workspaceFilteredCards=result;
             renderCards(result,duplicatesOnly?duplicateCounts:null);
-            updateStats();
-            updateBuilderState();
-            arenaRefreshCollection();
+            workspaceUpdateDerived();
         }
 
         function createCardHtml(card, showActions = true, duplicateCount = null) {
@@ -1132,6 +1086,7 @@
                     <div class="card-art">${visual}<span class="card-number">${card._minecards ? 'MINECARDS · ×'+escapeHtml(card._minecards.quantity) : '#'+escapeHtml(String(card.id).padStart(3,'0'))}</span></div>
                     <div class="card-identity"><span class="card-rarity ${badgeClass}">${escapeHtml(card.rarete)}</span><h4 title="${name}">${name}</h4>${duplicateCount!==null?`<span class="card-duplicate-detail">${escapeHtml(duplicateCount)} doublon${duplicateCount>1?'s':''} · original exclu</span>`:''}</div>
                     <dl class="card-numbers"><div class="card-power"><dt>Puissance</dt><dd>${escapeHtml(card.valeur)}</dd></div><div><dt><i class="fa-solid fa-bolt" aria-hidden="true"></i> Attaque</dt><dd>${escapeHtml(card.attaque ?? 50)}</dd></div><div><dt><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Défense</dt><dd>${escapeHtml(card.defense ?? 50)}</dd></div></dl>
+                    ${showActions ? workspaceCardTools(card) : ''}
                     ${showActions ? (Number(card.id)<0&&card._minecards ? `<div class="card-controls"><button type="button" onclick="switchTab('minecards')"><i class="fa-solid fa-link" aria-hidden="true"></i> Gérée sur MineCards · ×${escapeHtml(card._minecards.quantity)}</button></div>` : `<div class="card-controls"><button type="button" onclick="openEditModal(${Number(card.id)})"><i class="fa-solid fa-pen" aria-hidden="true"></i> Modifier</button><button type="button" onclick="deleteCard(${Number(card.id)})" aria-label="Supprimer ${name}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button></div>`) : ''}
                 </article>`;
         }
@@ -1144,13 +1099,11 @@
                 button.classList.toggle('selected', selected);
                 button.setAttribute('aria-pressed', String(selected));
             }
+            workspaceRemember();
         }
 
         function resetCollectionFilters() {
-            document.getElementById('search-input').value = '';
-            document.getElementById('rarity-filter').value = 'all';
-            document.getElementById('sort-select').value = 'valeur-desc';
-            filterAndRenderCards();
+            workspaceClearFilters();
         }
 
         function renderCards(list, duplicateCounts = null) {
@@ -1323,40 +1276,6 @@
             }finally{button.disabled=false;}
         }
 
-        function renderFavoriteDecks() {
-            renderProfileShowcase();
-            const grid = document.getElementById('favorite-decks-grid');
-            const emptyState = document.getElementById('no-favorites-state');
-            grid.innerHTML = '';
-            if (favoriteDecks.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
-            } else {
-                emptyState.classList.add('hidden');
-            }
-
-            favoriteDecks.forEach(deck => {
-                const deckEl = document.createElement('div');
-                deckEl.className = 'saved-deck';
-                const cardsMiniHtml = deck.cards.map((c,index) => `<li><span class="saved-card-index">0${index+1}</span><span><strong>${escapeHtml(c.nom)}</strong><small>${escapeHtml(c.rarete)}</small></span><b>${escapeHtml(c.valeur)}<small>pts</small></b></li>`).join('');
-                const isArena=deck.mode==='arena';
-                const arenaInfo=isArena?`<div class="saved-arena-info"><span>${escapeHtml(ArenaRules.environments[deck.arenaId]?.name||'Arène')}</span><span>${escapeHtml(ArenaRules.stances[deck.tactic]?.name||'Équilibrée')}</span><span>${Number.isSafeInteger(deck.teamCost)?deck.teamCost:'À vérifier'} / 18 points</span></div><div class="saved-arena-supports"><strong>Soutiens</strong><p>${(deck.supports||[]).length?(deck.supports||[]).map(card=>escapeHtml(card.nom)).join(' · '):'Aucun'}</p></div><button type="button" class="secondary-button" data-deck-id="${escapeHtml(deck.id)}" onclick="arenaOpenFavorite(this.dataset.deckId)">Ouvrir dans le préparateur</button>`:'';
-                deckEl.innerHTML = `
-                    <div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-solid ${isArena?'fa-shield-halved':'fa-star'}" aria-hidden="true"></i></span><div><span class="eyebrow">${isArena?'ÉQUIPE TACTIQUE':'COMBINAISON FAVORITE'}</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>${isArena?'puissance de collection':'puissance'}</small></div></div>
-                    <ol class="saved-deck-cards">${cardsMiniHtml}</ol>${arenaInfo}
-                    <div class="saved-deck-footer"><span>Enregistré le ${escapeHtml(deck.createdAt)}</span><button type="button" onclick="deleteFavoriteDeck(${Number(deck.id)})" aria-label="Supprimer le deck ${escapeHtml(deck.name)}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Supprimer</button></div>`;
-                grid.appendChild(deckEl);
-            });
-        }
-
-        function deleteFavoriteDeck(deckId) {
-            if (confirm("Voulez-vous supprimer ce deck de vos favoris ?")) {
-                favoriteDecks = favoriteDecks.filter(d => d.id !== deckId);
-                saveDecksStorage();
-                renderFavoriteDecks();
-            }
-        }
-
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1442,7 +1361,8 @@
                 const index = cards.findIndex(c => c.id == id);
                 if (index !== -1) cards[index] = { id: Number(id), nom, valeur, attaque, defense, rarete, image };
             } else {
-                const newId = Math.max(0, ...cards.map(c => Number(c.id)||0)) + 1;
+                const noteIds=Object.keys(notebookEntries).filter(key=>key.startsWith('local:')).map(key=>Number(key.slice(6))).filter(Number.isSafeInteger);
+                const newId = Math.max(0, ...cards.map(c => Number(c.id)||0),...noteIds) + 1;
                 cards.push({ id: newId, nom, valeur, attaque, defense, rarete, image });
             }
             saveCardsStorage();
@@ -1461,5 +1381,7 @@
         window.addEventListener('load', initStorage);
     </script>
     <script src="/minecards-ui.js"></script>
+    <script src="/workspace-ui.js"></script>
+    <script src="/admin-ui.js"></script>
 </body>
 </html>

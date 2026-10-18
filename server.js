@@ -8,6 +8,7 @@ const storage = require('./storage');
 const { promisify } = require('util');
 const { createMinecards, collectionData, localData, updateCardImages, updateCardPowers } = require('./minecards');
 const ArenaRules = require('./arena-rules');
+const {createWorkspace,recordAudit,createSession}=require('./workspace-service');
 
 const scrypt = promisify(crypto.scrypt);
 const HOST = '127.0.0.1';
@@ -93,7 +94,7 @@ function getUserFromRequest(req, db) {
         sessions.delete(tokenHash);
         return null;
     }
-    return db.users.find(user => user.id === session.userId) || null;
+    return db.users.find(user => user.id === session.userId&&!user.suspended) || null;
 }
 
 const PROFILE_AVATARS = ['cube', 'dragon', 'leaf', 'shield', 'wizard', 'paw', 'gem', 'bolt'];
@@ -154,7 +155,9 @@ async function handleApi(req, res, url) {
     if(!hasValidOrigin(req))return sendJson(res,403,{error:'Origine non autorisée.'});
 
     const db = readDb();
+    if(req.method==='GET'&&url.pathname==='/api/site')return workspace.handle(req,res,url,null);
     if (req.method === 'POST' && url.pathname === '/api/register') {
+        if(db.settings?.registrationsOpen===false)return sendJson(res,403,{error:'Les inscriptions sont temporairement fermées.'});
         const body = await readBody(req, 16 * 1024);
         const username = String(body.username || '').trim().toLowerCase();
         const password = String(body.password || '');
@@ -165,11 +168,12 @@ async function handleApi(req, res, url) {
         const passwordHash = (await scrypt(password, salt, 64, { N:16384, r:8, p:1 })).toString('hex');
         const user = { id:crypto.randomUUID(), username, salt, passwordHash, role:'user', data:{ cards:[], favoriteDecks:[] }, createdAt:new Date().toISOString() };
         const latest = readDb();
+        if(latest.settings?.registrationsOpen===false)return sendJson(res,403,{error:'Les inscriptions sont temporairement fermées.'});
         if (latest.users.some(item => item.username === username)) return sendJson(res, 409, { error:'Cet identifiant est déjà utilisé.' });
         latest.users.push(user);
         writeDb(latest);
         const token = crypto.randomBytes(32).toString('hex');
-        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), { userId:user.id, expiresAt:Date.now() + SESSION_TTL_MS });
+        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), createSession(user.id,req,SESSION_TTL_MS));
         return sendJson(res, 201, { user:publicUser(user) }, { 'Set-Cookie':sessionCookie(token) });
     }
 
@@ -191,9 +195,13 @@ async function handleApi(req, res, url) {
             return sendJson(res, 401, { error:'Identifiant ou mot de passe incorrect.' });
         }
         loginFailures.delete(key);
+        const latest=readDb(),current=latest.users.find(item=>item.id===user.id);
+        if(!current||current.passwordHash!==user.passwordHash)return sendJson(res,409,{error:'Le compte a changé. Réessaie de te connecter.'});
+        if(current.suspended)return sendJson(res,403,{error:'Ce compte est suspendu. Contacte l’administrateur.'});
+        current.lastLoginAt=new Date().toISOString();writeDb(latest);
         const token = crypto.randomBytes(32).toString('hex');
-        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), { userId:user.id, expiresAt:Date.now() + SESSION_TTL_MS });
-        return sendJson(res, 200, { user:publicUser(user) }, { 'Set-Cookie':sessionCookie(token) });
+        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), createSession(user.id,req,SESSION_TTL_MS));
+        return sendJson(res, 200, { user:publicUser(current) }, { 'Set-Cookie':sessionCookie(token) });
     }
 
     const user = getUserFromRequest(req, db);
@@ -207,6 +215,9 @@ async function handleApi(req, res, url) {
         return sendJson(res, 200, { ok:true }, { 'Set-Cookie':'minecards_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + (storage.isCloud ? '; Secure' : '') });
     }
     if (!user) return sendJson(res, 401, { error:'Connexion requise.' });
+    if(['/api/export','/api/notebook','/api/sessions','/api/sessions/revoke','/api/admin/overview','/api/admin/audit','/api/admin/settings'].includes(url.pathname)||/^\/api\/admin\/users\/[0-9a-f-]{36}\/(access|sessions\/revoke|bulk-delete)$/i.test(url.pathname)){
+        if(await workspace.handle(req,res,url,user))return;
+    }
     if (url.pathname.startsWith('/api/minecards/')) return minecards.handle(req,res,url,user);
     if (req.method === 'PATCH' && url.pathname === '/api/profile') {
         const body = await readBody(req, 512 * 1024);
@@ -264,27 +275,20 @@ async function handleApi(req, res, url) {
         loginFailures.delete(key);
         for (const [hash, session] of sessions) if (session.userId === current.id) sessions.delete(hash);
         const token = crypto.randomBytes(32).toString('hex');
-        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), { userId:current.id, expiresAt:Date.now() + SESSION_TTL_MS });
+        sessions.set(crypto.createHash('sha256').update(token).digest('hex'), createSession(current.id,req,SESSION_TTL_MS));
         return sendJson(res, 200, { ok:true }, { 'Set-Cookie':sessionCookie(token) });
     }
     if (url.pathname.startsWith('/api/admin/')) {
         if ((user.role || 'user') !== 'admin') return sendJson(res, 403, { error:'Accès réservé à l’administration.' });
         if (req.method === 'GET' && url.pathname === '/api/admin/users') {
-            const users = db.users.map(item => ({
-                id:item.id,
-                username:item.username,
-                role:item.role || 'user',
-                createdAt:item.createdAt,
-                cardCount:collectionData(item).cards.length,
-                favoriteDeckCount:Array.isArray(item.data?.favoriteDecks) ? item.data.favoriteDecks.length : 0
-            }));
+            const users = db.users.map(workspace.userSummary);
             return sendJson(res, 200, { users });
         }
         const detailMatch = url.pathname.match(/^\/api\/admin\/users\/([0-9a-f-]{36})$/i);
         if (req.method === 'GET' && detailMatch) {
             const target = db.users.find(item => item.id === detailMatch[1]);
             if (!target) return sendJson(res, 404, { error:'Profil introuvable.' });
-            return sendJson(res, 200, { user:{ ...publicUser(target), createdAt:target.createdAt }, data:collectionData(target) });
+            return sendJson(res, 200, { user:{ ...publicUser(target), ...workspace.userSummary(target) }, data:collectionData(target) });
         }
         if (detailMatch && req.method === 'DELETE') {
             const target = db.users.find(item => item.id === detailMatch[1]);
@@ -292,6 +296,8 @@ async function handleApi(req, res, url) {
             if (target.id === user.id) return sendJson(res, 400, { error:'Vous ne pouvez pas supprimer votre propre compte administrateur.' });
             if ((target.role || 'user') === 'admin') return sendJson(res, 400, { error:'Un compte administrateur ne peut pas être supprimé depuis ce panneau.' });
             db.users = db.users.filter(item => item.id !== target.id);
+            workspace.revoke(target.id);
+            recordAudit(db,user,'user.delete',target,'Suppression définitive du compte');
             writeDb(db);
             minecards.forget(target.id);
             return sendJson(res, 200, { ok:true });
@@ -308,33 +314,40 @@ async function handleApi(req, res, url) {
             const index = records.findIndex(item => String(item?.id) === recordId);
             if (index < 0) return sendJson(res, 404, { error:'Élément introuvable.' });
             records.splice(index, 1);
+            target.dataRevision=(target.dataRevision||0)+1;
+            if(field==='favoriteDecks'&&target.profile?.featuredDeckId===recordId)target.profile.featuredDeckId='';
+            recordAudit(db,user,'record.delete',target,field+' : '+recordId);
             writeDb(db);
             return sendJson(res, 200, { ok:true });
         }
         return sendJson(res, 404, { error:'Route administrateur introuvable.' });
     }
-    if (req.method === 'GET' && url.pathname === '/api/data') return sendJson(res, 200, { data:collectionData(user) });
+    if (req.method === 'GET' && url.pathname === '/api/data') return sendJson(res, 200, { data:collectionData(user),revision:user.dataRevision||0 });
     if (req.method === 'PUT' && url.pathname === '/api/data') {
         const body = await readBody(req, 20 * 1024 * 1024);
-        const data = localData(body.data);
+        const data = localData(body?.data);
         if (!validData(data)) return sendJson(res, 400, { error:'Données de profil invalides.' });
         const latest = readDb();
         const current = getUserFromRequest(req, latest);
         if (!current) return sendJson(res, 401, { error:'Connexion requise.' });
+        if(!Number.isSafeInteger(body.revision)||body.revision!==(current.dataRevision||0))return sendJson(res,409,{error:'La collection ou les favoris ont été modifiés depuis une autre page ou par l’administration. Recharge tes données avant de réessayer.',staleData:true});
         const arenaError=normalizeArenaFavorites(data,current);
         if(arenaError)return sendJson(res,409,{error:arenaError});
         current.data = data;
+        current.dataRevision=(current.dataRevision||0)+1;
+        if(current.profile?.featuredDeckId&&!data.favoriteDecks.some(deck=>String(deck.id)===current.profile.featuredDeckId))current.profile.featuredDeckId='';
         // Un favori sauvegardé pendant l'import ne rétablit pas les anciennes
         // images et puissances après la validation de la nouvelle collection.
         const catalog=(current.minecards?.cards||[]).map(card=>({id:card._minecards.cardId,name:card.nom,image:card.image,...card._minecards}));
         if(catalog.length){updateCardImages(current,catalog);updateCardPowers(current,catalog);}
         writeDb(latest);
-        return sendJson(res, 200, { ok:true });
+        return sendJson(res, 200, { ok:true,revision:current.dataRevision });
     }
     return sendJson(res, 404, { error:'Route introuvable.' });
 }
 
 const minecards = createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest});
+const workspace=createWorkspace({readDb,writeDb,readBody,sendJson,getUserFromRequest,publicUser,sessions,minecards,collectionData});
 async function handler(req, res) {
     try {
         const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
@@ -362,7 +375,7 @@ async function handler(req, res) {
         catch { return sendJson(res, 400, { error:'URL invalide.' }); }
         const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
         const filePath = path.resolve(__dirname, requested);
-        if (!['index.html','theme.css','minecards-ui.js','profile-media.js','profile-showcase.js','arena-rules.js','arena-builder.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
+        if (!['index.html','theme.css','minecards-ui.js','profile-media.js','profile-showcase.js','arena-rules.js','arena-builder.js','workspace-ui.js','admin-ui.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
         fs.readFile(filePath, (error, content) => {
             if (error) return sendJson(res, error.code === 'ENOENT' ? 404 : 500, { error:error.code === 'ENOENT' ? 'Fichier introuvable.' : 'Erreur serveur.' });
             res.writeHead(200, { 'Content-Type':MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'X-Content-Type-Options':'nosniff', 'Cache-Control':'no-cache' });

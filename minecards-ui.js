@@ -74,16 +74,17 @@ async function mcDisconnect(){
     if(!confirm('Déconnecter la clé MineCards de ce profil ? La dernière copie de collection et tes cartes locales seront conservées.'))return;
     try{await apiRequest('/api/minecards/disconnect',{method:'POST',body:'{}'});await mcInit();mcMessage('Connexion retirée. La dernière collection importée reste consultable.',true);}catch(error){mcMessage(error.message);}
 }
-async function mcReloadCollection(generation,suppliedData=null,revision=null){
+async function mcReloadCollection(generation,suppliedData=null,revision=null,serverRevision=null){
     while(generation===mcGeneration&&activeProfile){
         await profileSaveQueue;
         if(generation!==mcGeneration||!activeProfile)return;
         const currentRevision=profileDataRevision;
-        const result=suppliedData&&revision===currentRevision?{data:suppliedData}:await apiRequest('/api/data');
+        const result=suppliedData&&revision===currentRevision?{data:suppliedData,revision:serverRevision}:await apiRequest('/api/data');
         if(generation!==mcGeneration||!activeProfile)return;
         // Une sauvegarde lancée pendant cette lecture doit se terminer avant
         // d'afficher une nouvelle copie, sans effacer les modifications locales.
         if(currentRevision!==profileDataRevision){suppliedData=null;continue;}
+        if(Number.isSafeInteger(result.revision))profileServerRevision=result.revision;
         const nextCards=Array.isArray(result.data?.cards)?result.data.cards:[],nextDecks=Array.isArray(result.data?.favoriteDecks)?result.data.favoriteDecks:[];
         if(JSON.stringify(nextCards)===JSON.stringify(cards)&&JSON.stringify(nextDecks)===JSON.stringify(favoriteDecks))return false;
         cards=nextCards;favoriteDecks=nextDecks;
@@ -124,7 +125,7 @@ function mcSync(){
             mcApplyStatus(state);
             if(state.job?.error)throw Object.assign(Error(state.job.error),{retryAfter:state.job.retryAt?Math.max(0,Math.ceil((Date.parse(state.job.retryAt)-Date.now())/1000)):null});
             if(!state.configured||state.job?.phase!=='complete')throw Error('La synchronisation a été interrompue. Relance-la depuis la connexion MineCards.');
-            const changed=await mcReloadCollection(generation,state.data,revision);
+            const changed=await mcReloadCollection(generation,state.data,revision,state.dataRevision);
             if(generation!==mcGeneration)return null;
             mcMessage(changed?'Collection actualisée depuis MineCards.':'Collection à jour : aucun changement depuis la dernière lecture.',true);
             mcNextAutoAt=Date.now()+mcAutoInterval;

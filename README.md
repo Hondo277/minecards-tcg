@@ -21,6 +21,12 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Tris des doublons croissant / décroissant : affichent uniquement les cartes ayant au moins deux exemplaires, avec le nombre supplémentaire par carte et le total filtré. La recherche et le filtre de rareté restent disponibles.
 - Fusion des cartes locales historiques et des cartes importées, sans compter deux fois les correspondances reconnues.
 - Un nouveau compte démarre sans carte ni deck favori.
+- Filtres combinables par origine, catégorie, dimension, nombre d'exemplaires, puissance minimum / maximum et cartes favorites ; recherche tolérante aux accents incluant les notes et noms anglais.
+- Filtres et affichage grille / liste mémorisés par compte dans le navigateur ; la touche `/` place le curseur dans la recherche.
+- Rechargement des données depuis le serveur et refus des sauvegardes obsolètes pour éviter qu'un onglet ancien rétablisse des données supprimées.
+- Fiche détaillée de chaque carte, statistiques officielles et enregistrées, exemplaires / doublons et liste des decks qui l'utilisent.
+- Carnet privé : cartes favorites et notes de 600 caractères, conservées séparément de la collection synchronisée.
+- Exports CSV et JSON de la sélection filtrée, avec quantités et doublons hors original.
 
 ### Créateur de decks
 
@@ -32,6 +38,10 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Affichage de la puissance obtenue et de l’écart avec la cible.
 - Enregistrement, consultation et suppression des decks favoris.
 - Ouverture du trio le plus puissant dans l’atelier depuis le profil.
+- Recherche dans les noms de decks et de cartes, filtres de format, tris par nom, date ou puissance.
+- Renommage, duplication, export JSON et réouverture des trios dans l'atelier avec les cartes actuelles.
+- Comparaison côte à côte de deux favoris : puissance, statistiques enregistrées, raretés, cartes communes, soutiens et budget tactique. Cette comparaison ne simule pas un combat.
+- Indication des cartes absentes de la collection actuelle et confirmation serveur avant de valider une modification de favori.
 
 ### Arènes tactiques
 
@@ -50,6 +60,8 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Statistiques : cartes uniques, exemplaires, doublons, favoris, raretés et puissance maximale d’un trio.
 - Deck favori à mettre en avant, cartes les plus rares et répartition par rareté.
 - Modification du mot de passe avec vérification de l’ancien, renouvellement de la session et déconnexion des autres sessions.
+- Liste des sessions actives, révocation d'une autre session ou de toutes les autres sessions.
+- Téléchargement d'un export personnel JSON : profil, collection, favoris et carnet, sans clé API, empreinte de mot de passe ni jeton de session.
 
 ### Administration
 
@@ -59,6 +71,14 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Suppression des cartes locales et favoris des autres profils, et suppression d’un compte membre après confirmation.
 - Protection du compte courant et des autres administrateurs contre la suppression depuis le panneau.
 - Les cartes importées restent gérées sur MineCards : l’API distante est en lecture seule.
+- Tableau de bord : profils, exemplaires, cartes uniques cumulées, doublons, favoris, comptes MineCards, sessions actives et comptes suspendus.
+- Recherche et filtres de profils par rôle, état et connexion MineCards ; tris par cartes, doublons ou date de création ; export CSV des indicateurs.
+- Fiches de compte enrichies avec date de dernière connexion, dernier import API et état de synchronisation.
+- Suspension / réactivation des membres et révocation de leurs sessions, avec protection des comptes administrateurs et du compte courant.
+- Sélection et suppression groupées de 1 à 100 cartes locales ou decks d'un membre, après confirmation ; validation complète avant suppression.
+- Collections paginées par 40 entrées, tri par nom, puissance ou doublons, filtre d'origine, recherche de decks et export CSV de la collection filtrée.
+- Journal des 400 dernières actions admin, consultable par recherche et type d'action, avec export CSV ; il commence lors de l'installation de cette version.
+- Annonce de site personnalisable (information, bonne nouvelle, attention), et ouverture / fermeture des inscriptions. Les membres existants gardent accès à leur compte.
 
 ### Interface
 
@@ -158,6 +178,9 @@ minecards.js                  Passerelle privée et synchronisation
 minecards-remote.js           Lectures MineCards et validation du protocole distant
 minecards-sync.js             Import par étapes, reprise et validation atomique
 minecards-ui.js               Connexion et explorateur MineCards
+workspace-service.js          Carnet, sessions, exports, statistiques et actions admin
+workspace-ui.js               Fiches, filtres, carnet et bibliothèque de decks
+admin-ui.js                   Tableau de bord et outils d'administration
 profile-media.js              Import, compression et aperçu des images
 profile-showcase.js           Statistiques et vitrine du profil
 arena-rules.js                Règles tactiques partagées navigateur / serveur

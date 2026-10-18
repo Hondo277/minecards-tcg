@@ -41,6 +41,18 @@ Chaque compte possède un identifiant stable, un nom de connexion, un rôle, un 
 - Vérification d’origine et contrôle des droits dans les routes serveur.
 - Changement de mot de passe : contrôle de l’ancien, renouvellement de la session et révocation des autres sessions.
 
+Chaque nouvelle session possède un identifiant public aléatoire distinct de son empreinte d'authentification, une date de création et un libellé `User-Agent` limité à 160 caractères. L'écran du compte peut révoquer ses autres sessions sans recevoir de jeton ni d'empreinte. Un compte suspendu est refusé par `getUserFromRequest()` et à la connexion ; une suspension révoque toutes ses sessions. Le contrôle après calcul du mot de passe relit le compte pour éviter de rétablir une session devenue invalide pendant cette attente.
+
+`workspace-service.js` fournit carnet privé, export personnel, sessions, statistiques et nouvelles actions administrateur. Les mutations relisent et vérifient l'acteur avant écriture. `db.settings` contient l'annonce publique et l'ouverture des inscriptions ; `db.auditLog` conserve les 400 dernières mutations admin. Aucune migration destructive n'est nécessaire : les champs manquants reçoivent des valeurs par défaut lors de la lecture.
+
+Le carnet est stocké dans `user.notebook`, avec les clés stables `mc:<cardId>` / `local:<id>`, et non dans `user.data`. Une mise à jour de collection ou une sauvegarde de favoris ne peut donc pas l'effacer. Les notes et favoris personnels sont validés côté serveur, restent propres au compte, et sont conservés même si une carte quitte temporairement l'inventaire. Le client sérialise les modifications du carnet et les ignore après un changement de compte.
+
+`user.dataRevision` protège les données locales et favoris contre les sauvegardes obsolètes. Le client transmet la dernière révision confirmée dans `PUT /api/data` ; les sauvegardes et suppressions admin l'incrémentent. Une ancienne version est refusée avec `409` au lieu de rétablir un élément supprimé. Les métadonnées recalculées par une synchronisation n'incrémentent pas cette version structurelle et restent rafraîchies lors du `PUT`. Le navigateur sérialise ses sauvegardes et récupère aussi la révision lors d'un rechargement ou à la fin d'une synchronisation.
+
+`workspace-ui.js` gère les filtres mémorisés par compte, fiches de cartes, exports et organisation des decks. `admin-ui.js` gère les lectures de tableaux de bord et annule l'affichage de retours obsolètes lors d'un changement de profil sélectionné. Les collections admin sont paginées par 40 entrées ; les exports utilisent l'ensemble filtré. Les cellules CSV susceptibles d'être interprétées comme formules sont préfixées par une apostrophe.
+
+Une signature de la collection évite de recalculer les statistiques et de reconstruire le préparateur d'arène à chaque frappe dans les filtres. Un changement de carte ou de métadonnées invalide cette signature ; un changement de compte la réinitialise.
+
 ## Collection et synchronisation
 
 Les cartes locales historiques et les cartes importées sont stockées séparément. `collectionData()` les fusionne pour l’affichage et l’administration ; `localData()` évite de recopier les entrées importées comme cartes locales lors d’une sauvegarde ordinaire.
