@@ -384,7 +384,8 @@
         </section>
 
         <section id="section-builder" class="tab-section hidden" aria-label="Atelier de decks">
-            <div class="builder-layout">
+            <div class="builder-format-switch" role="group" aria-label="Format de composition"><button type="button" id="builder-format-power" aria-pressed="true" onclick="setBuilderFormat('power')">Trio de puissance</button><button type="button" id="builder-format-arena" aria-pressed="false" onclick="setBuilderFormat('arena')"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Arènes tactiques</button></div>
+            <div class="builder-layout" id="power-builder">
                 <div class="builder-console glass-panel">
                     <span class="eyebrow">01 / TA STRATÉGIE</span><div class="console-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div><h3>Le bon trio.<br>La bonne puissance.</h3><p>Compose avec tes cartes disponibles et leur dernière puissance synchronisée depuis MineCards.</p>
                     <form id="deck-builder-form" class="builder-controls" onsubmit="event.preventDefault();generateDeck()">
@@ -406,6 +407,33 @@
                         <div class="deck-save-bar"><label for="deck-name-input">Garder cette combinaison<input type="text" id="deck-name-input" maxlength="120" placeholder="Le nom de ton deck…"></label><button id="save-generated-deck" type="button" onclick="saveCurrentDeckToFavorites()" class="workspace-add-button"><i class="fa-regular fa-star" aria-hidden="true"></i> Enregistrer en favori</button></div>
                     </div>
                 </div>
+            </div>
+            <div id="arena-builder" class="hidden">
+                <div class="arena-intro"><div><span class="eyebrow">COMBAT AU TOUR PAR TOUR</span><h3>Une équipe, plusieurs façons de gagner.</h3><p>Trois créatures, jusqu’à deux soutiens, 18 points. La puissance de collection reste un repère : ici, prépare les rôles, les capacités et l’ordre de jeu.</p></div><button type="button" class="secondary-button" onclick="arenaSyncCollection(this)"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Actualiser mes cartes</button></div>
+                <div class="arena-planner-grid">
+                    <aside class="arena-planner-settings glass-panel">
+                        <label>Arène<select id="arena-target" onchange="arenaSettingsChanged()"><option value="overworld">Clairière des gardiens</option><option value="nether">Bastion des braises</option><option value="end">Citadelle du vide</option></select></label>
+                        <p id="arena-environment" class="arena-explanation"></p>
+                        <label>Style de composition<select id="arena-strategy"><option value="balanced">Complémentarité des rôles</option><option value="offensive">Priorité offensive</option><option value="defensive">Endurance et protection</option><option value="control">Perturbation et énergie</option></select></label>
+                        <label>Soutiens à proposer<select id="arena-support-limit"><option value="2">Jusqu’à 2 soutiens</option><option value="1">Jusqu’à 1 soutien</option><option value="0">Sans soutien</option></select></label>
+                        <button type="button" id="arena-suggest" class="workspace-add-button" onclick="arenaSuggest()"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Proposer une équipe</button>
+                        <label>Posture prévue<select id="arena-stance" onchange="arenaSettingsChanged()"><option value="balanced">Équilibrée</option><option value="aggressive">Agressive</option><option value="defensive">Prudente</option></select></label>
+                        <p id="arena-stance-note" class="arena-explanation"></p>
+                        <div class="arena-budget"><span>Budget d’équipe</span><strong id="arena-team-cost">0 / 18</strong><progress id="arena-budget-progress" max="18" value="0" aria-label="Points d’équipe utilisés"></progress><small>Charbon 2 · Cuivre 3 · Fer 4 · Or 5 · Diamant 6 · Netherite 7</small></div>
+                        <p id="arena-planner-message" class="settings-message" role="status" aria-live="polite"></p>
+                    </aside>
+                    <div class="arena-planner-team">
+                        <div class="arena-board-heading"><div><span class="eyebrow">TON ÉQUIPE</span><h3>Choisis qui ouvre le combat.</h3></div><button type="button" class="text-link" onclick="arenaClearTeam()">Vider l’équipe</button></div>
+                        <div id="arena-fighter-slots" class="arena-fighter-slots"></div>
+                        <div class="arena-support-heading"><h4>Soutiens facultatifs <span id="arena-support-count">0 / 2</span></h4><small>Chaque carte est utilisable une fois par combat.</small></div>
+                        <div id="arena-support-slots" class="arena-support-slots"></div>
+                        <div id="arena-team-advice" class="arena-team-advice"></div>
+                        <div class="arena-save-row"><label for="arena-deck-name">Nom de l’équipe<input id="arena-deck-name" maxlength="120" placeholder="Mon équipe d’arène"></label><button id="arena-save" type="button" class="workspace-add-button" onclick="arenaSaveTeam()">Enregistrer en favori</button><button type="button" class="secondary-button" onclick="arenaCopyTeam()">Copier l’équipe</button></div>
+                    </div>
+                </div>
+                <div class="arena-card-browser glass-panel"><div class="arena-browser-heading"><h3>Ta sélection tactique</h3><p id="arena-card-count"></p></div><div class="arena-browser-filters"><label class="sr-only" for="arena-card-search">Rechercher une carte</label><input id="arena-card-search" type="search" placeholder="Nom, catégorie, dimension…" oninput="arenaRenderPool()"><label>Type<select id="arena-card-type" onchange="arenaRenderPool()"><option value="creature">Créatures</option><option value="support">Soutiens</option></select></label><label>Rôle / effet<select id="arena-card-role" onchange="arenaRenderPool()"><option value="all">Tous les rôles et effets</option><option value="striker">Attaquant</option><option value="tank">Protecteur</option><option value="healer">Soigneur</option><option value="trickster">Perturbateur</option><option value="heal">Ravitaillement</option><option value="cleanse">Purification</option><option value="blast">Explosion</option><option value="guard">Abri</option><option value="weapon">Armement</option><option value="energy">Impulsion</option></select></label></div><div id="arena-card-pool" class="arena-card-pool"></div></div>
+                <section class="arena-opponent-panel glass-panel"><div class="arena-browser-heading"><div><span class="eyebrow">LES INFORMATIONS PUBLIÉES</span><h3>Le champion et sa défense</h3></div><button type="button" class="secondary-button" id="arena-load-opponents" onclick="arenaLoadOpponents()">Actualiser les arènes</button></div><p id="arena-opponent-status" class="arena-explanation" role="status"></p><div id="arena-opponent-content"></div></section>
+                <details class="arena-rules-guide glass-panel"><summary>Repères pour ton prochain combat</summary><div><p>La première créature démarre active. Changer de créature coûte normalement 1 énergie et l’initiative alterne d’un tour à l’autre. Une posture peut changer gratuitement à chaque tour ; ses modificateurs concernent les dégâts directs.</p><p>Les capacités affichées coûtent 2 énergie et ont 2 tours de récupération. Les soutiens ne disparaissent pas de la collection, mais chacun ne s’utilise qu’une fois pendant le combat.</p><p>Après 30 tours, la somme des pourcentages de vie restants départage les équipes. Une égalité profite au champion : préserver tes trois créatures peut compter davantage que la puissance brute.</p><p>Les propositions privilégient les statistiques de combat, les rôles et le terrain. Elles n’annoncent pas de probabilité de victoire. Le résultat dépend des actions et des informations adverses disponibles.</p><a href="https://minecards.vercel.app/arenes" target="_blank" rel="noopener noreferrer">Ouvrir les arènes sur MineCards ↗</a></div></details>
             </div>
         </section>
 
@@ -580,6 +608,8 @@
     <!-- Scripts et Données -->
     <script src="/profile-media.js"></script>
     <script src="/profile-showcase.js"></script>
+    <script src="/arena-rules.js"></script>
+    <script src="/arena-builder.js"></script>
     <script>
 
 
@@ -1073,6 +1103,7 @@
             renderCards(result);
             updateStats();
             updateBuilderState();
+            arenaRefreshCollection();
         }
 
         function createCardHtml(card, showActions = true) {
@@ -1295,9 +1326,11 @@
                 const deckEl = document.createElement('div');
                 deckEl.className = 'saved-deck';
                 const cardsMiniHtml = deck.cards.map((c,index) => `<li><span class="saved-card-index">0${index+1}</span><span><strong>${escapeHtml(c.nom)}</strong><small>${escapeHtml(c.rarete)}</small></span><b>${escapeHtml(c.valeur)}<small>pts</small></b></li>`).join('');
+                const isArena=deck.mode==='arena';
+                const arenaInfo=isArena?`<div class="saved-arena-info"><span>${escapeHtml(ArenaRules.environments[deck.arenaId]?.name||'Arène')}</span><span>${escapeHtml(ArenaRules.stances[deck.tactic]?.name||'Équilibrée')}</span><span>${Number.isSafeInteger(deck.teamCost)?deck.teamCost:'À vérifier'} / 18 points</span></div><div class="saved-arena-supports"><strong>Soutiens</strong><p>${(deck.supports||[]).length?(deck.supports||[]).map(card=>escapeHtml(card.nom)).join(' · '):'Aucun'}</p></div><button type="button" class="secondary-button" data-deck-id="${escapeHtml(deck.id)}" onclick="arenaOpenFavorite(this.dataset.deckId)">Ouvrir dans le préparateur</button>`:'';
                 deckEl.innerHTML = `
-                    <div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-regular fa-star" aria-hidden="true"></i></span><div><span class="eyebrow">COMBINAISON FAVORITE</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>puissance</small></div></div>
-                    <ol class="saved-deck-cards">${cardsMiniHtml}</ol>
+                    <div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-solid ${isArena?'fa-shield-halved':'fa-star'}" aria-hidden="true"></i></span><div><span class="eyebrow">${isArena?'ÉQUIPE TACTIQUE':'COMBINAISON FAVORITE'}</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>${isArena?'puissance de collection':'puissance'}</small></div></div>
+                    <ol class="saved-deck-cards">${cardsMiniHtml}</ol>${arenaInfo}
                     <div class="saved-deck-footer"><span>Enregistré le ${escapeHtml(deck.createdAt)}</span><button type="button" onclick="deleteFavoriteDeck(${Number(deck.id)})" aria-label="Supprimer le deck ${escapeHtml(deck.name)}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Supprimer</button></div>`;
                 grid.appendChild(deckEl);
             });

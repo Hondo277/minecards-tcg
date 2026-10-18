@@ -72,13 +72,15 @@ Les favoris sont des instantanés de cartes avec nom, cible, total et date. Le f
 
 Les doublons sont les exemplaires supplémentaires après en avoir conservé un par carte différente. Aucune statistique de combat ou d’ouverture de booster n’est inventée.
 
+Le mode tactique utilise `arena-rules.js` dans le navigateur et sur le serveur : trois créatures, jusqu’à deux soutiens, coût total de 18 points, statistiques de combat distinctes des attributs historiques. `arena-builder.js` gère la sélection, l’ordre, les postures, les conseils de terrain et les lectures d’arènes via la passerelle existante. Le choix automatique utilise un score heuristique explicite dans le code ; il ne simule pas les combats. Les nouvelles équipes favorites sont reconstruites depuis le stock importé côté serveur. Voir [ARENAS.md](ARENAS.md) pour les règles observées et les limites.
+
 ## Médias
 
 JPG, PNG et WebP sont acceptés, jusqu’à 10 Mio avant traitement. Le navigateur recadre au centre et compresse vers 320 × 320 pixels pour la photo, 1200 × 360 pour la bannière. Le serveur vérifie le format, la signature binaire et les plafonds de 80 Kio / 180 Kio. Les images sont encodées dans le profil ; les avatars par icônes restent disponibles.
 
 ## Build et limites
 
-`scripts/build.js` contrôle la syntaxe du JS externe et embarqué, puis copie une liste explicite de cinq assets dans `public/`. Il refuse les fichiers inattendus. La fonction passe par `api/index.js` et `server.js`.
+`scripts/build.js` contrôle la syntaxe du JS externe et embarqué, puis copie une liste explicite de sept assets dans `public/`. Il refuse les fichiers inattendus. La fonction passe par `api/index.js` et `server.js`.
 
 - API MineCards consultée uniquement, sans écriture distante.
 - Aucun compte ni administrateur précréé dans le dépôt.

@@ -31,6 +31,15 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Enregistrement, consultation et suppression des decks favoris.
 - Ouverture du trio le plus puissant dans l’atelier depuis le profil.
 
+### Arènes tactiques
+
+- Préparation de **3 créatures et 0 à 2 soutiens**, avec un budget partagé de **18 points**.
+- Points de vie, attaque, armure, rôles et effets de soutien calculés à partir des dernières statistiques officielles, sans modifier les anciennes valeurs enregistrées.
+- Effets propres à l’Overworld, au Nether et à l’End ; choix de posture et ordre des créatures.
+- Composition conseillée selon les rôles, le terrain et le budget, puis ajustement manuel.
+- Lecture des champions et défenses publiés par l’API ; enregistrement / réouverture des équipes favorites et copie de la composition.
+- Voir [Analyse des arènes et limites des recommandations](docs/ARENAS.md). Ce préparateur ne lance aucun combat ni ne modifie une défense sur MineCards.
+
 ### Profil du collectionneur
 
 - Connexion par **identifiant et mot de passe, sans email**.
@@ -144,6 +153,8 @@ minecards.js                  Passerelle privée et synchronisation
 minecards-ui.js               Connexion et explorateur MineCards
 profile-media.js              Import, compression et aperçu des images
 profile-showcase.js           Statistiques et vitrine du profil
+arena-rules.js                Règles tactiques partagées navigateur / serveur
+arena-builder.js              Préparation des équipes d’arène
 scripts/build.js              Préparation des seuls fichiers publics
 scripts/migrate-vercel.js     Import initial privé vers Redis, sans écrasement
 docs/                         Documentation technique et guides
@@ -157,7 +168,7 @@ Le serveur crée `data/` au premier démarrage local. `public/` est généré pa
 | Commande | Usage |
 | --- | --- |
 | `npm start` | Démarrer le serveur local |
-| `npm run build` | Contrôler la syntaxe JS et préparer les cinq fichiers publics |
+| `npm run build` | Contrôler la syntaxe JS et préparer les sept fichiers publics |
 | `npm run migrate:vercel` | Importer les comptes locaux dans Redis vide, avec `.env.vercel.local` |
 
 Le build contrôle la syntaxe des scripts externes et embarqués ; ce n’est pas une suite de tests fonctionnels. Aucune suite automatisée n’est actuellement fournie.
@@ -166,6 +177,7 @@ Le build contrôle la syntaxe des scripts externes et embarqués ; ce n’est pa
 
 - [Architecture et limites](docs/ARCHITECTURE.md)
 - [Routes du serveur](docs/API.md)
+- [Arènes tactiques](docs/ARENAS.md)
 - [Administrateur et sauvegardes](docs/ADMINISTRATION.md)
 - [Déploiement Vercel](VERCEL.md)
 - [Contribuer](CONTRIBUTING.md)

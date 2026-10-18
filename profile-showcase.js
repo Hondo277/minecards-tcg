@@ -31,6 +31,7 @@ function openProfileCustomization() {
 }
 
 function openStrongestProfileDeck() {
+    setBuilderFormat('power');
     const trio=strongestProfileCards();
     if (trio.length!==3) return;
     const total=trio.reduce((sum,card)=>sum+profilePower(card),0);

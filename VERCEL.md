@@ -36,7 +36,7 @@ Importer le dépôt dans Vercel (ou déployer le dossier avec Vercel CLI).
 - Output : `public`.
 - Les routes et la durée de fonction sont configurées dans `vercel.json`.
 
-Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js` et `profile-showcase.js`. La fonction `api/index.js` traite les routes `/api/*`. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
+Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js` et `arena-builder.js`. La fonction `api/index.js` traite les routes `/api/*`. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
 
 ## Fonctionnement et limites
 

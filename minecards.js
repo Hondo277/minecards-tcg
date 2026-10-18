@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const storage = require('./storage');
+const ArenaRules = require('./arena-rules');
 const BASE = 'https://minecards.vercel.app/api/v1/';
 const API_VERSION = '1.1.0';
 const KEY_FILE = path.join(__dirname, 'data', 'minecards-connections.json');
@@ -31,7 +32,7 @@ function updateCardImages(user,catalog) {
         }else missing++;
     };
     for(const card of user.data?.cards||[])refresh(card);
-    for(const deck of user.data?.favoriteDecks||[])for(const card of deck.cards||[])refresh(card);
+    for(const deck of user.data?.favoriteDecks||[])for(const card of [...(deck.cards||[]),...(deck.supports||[])])refresh(card);
     for(const card of user.minecards?.cards||[])refresh(card);
     return {updated,missing};
 }
@@ -44,14 +45,18 @@ function updateCardPowers(user,catalog) {
         const source=byId.get(card._minecards?.cardId||LEGACY_CARD_IDS[normalize(card.nom)])||byName.get(normalize(card.nom));
         if(!source||!Number.isSafeInteger(source.power)){missing++;return;}
         if(card.valeur!==source.power){card.valeur=source.power;updated++;}
-        if(card._minecards)card._minecards.power=source.power;
+        if(card._minecards)Object.assign(card._minecards,{power:source.power,category:source.category,dimension:source.dimension,attack:source.attack,defense:source.defense,active:source.active,rarity:source.rarity,nameEn:source.nameEn});
     };
     for(const card of user.data?.cards||[])refresh(card);
     for(const card of user.minecards?.cards||[])refresh(card);
     for(const deck of user.data?.favoriteDecks||[]){
-        for(const card of deck.cards||[])refresh(card);
+        for(const card of [...(deck.cards||[]),...(deck.supports||[])])refresh(card);
         const total=(deck.cards||[]).reduce((sum,card)=>sum+(Number(card.valeur)||0),0);
         if(deck.totalPower!==total){deck.totalPower=total;updatedDecks++;}
+        if(deck.mode==='arena'){
+            const costs=[...(deck.cards||[]),...(deck.supports||[])].map(ArenaRules.cost);
+            deck.teamCost=costs.every(Number.isSafeInteger)?costs.reduce((sum,cost)=>sum+cost,0):null;
+        }
         if(Object.hasOwn(deck,'diff')&&Number.isFinite(deck.targetPower))deck.diff=Math.abs(total-deck.targetPower);
     }
     return {updated,missing,updatedDecks};
@@ -163,7 +168,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
                 const c=item.card,attack=Number(c.attack)||0,defense=Number(c.defense)||0;
                 const prior=previousCards.get(item.cardId);
                 if(!Number.isSafeInteger(c.power))throw fail(502,'La puissance officielle manque dans une carte MineCards. La synchronisation est annulée pour conserver les valeurs précédentes.');
-                return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity,power:c.power}};
+                return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity,power:c.power,category:c.category,dimension:c.dimension,attack:c.attack,defense:c.defense,active:c.active,rarity:c.rarity,nameEn:c.nameEn}};
             });
             user.minecards={cards:imported,syncedAt:new Date().toISOString()};
             updateCardImages(user,[...owned.values()].map(item=>item.card));

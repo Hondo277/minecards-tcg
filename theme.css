@@ -424,6 +424,62 @@ body { overflow-x:clip; }
 .deck-result-stats dt { font-size:10px;color:#a3b3cc; }
 .deck-result-stats dd { margin-top:7px;font-size:18px;color:#e6deff;font-weight:600; }
 .deck-badge-maximum { display:inline-block;padding:6px 12px;background:#bca3ef1c;border:1px solid #bca3ef55;border-radius:999px;color:#d5c2ff;font-size:11px; }
+
+/* Préparation des arènes tactiques. */
+#power-builder.hidden,#arena-builder.hidden { display:none!important; }
+.builder-format-switch { display:inline-flex;gap:6px;padding:5px;margin-bottom:26px;border:1px solid #3c4b68;border-radius:12px;background:#172235; }
+.builder-format-switch button { padding:11px 16px;border-radius:8px;font-size:12px;color:#a8b8d2; }
+.builder-format-switch button[aria-pressed="true"] { background:#ffa58f;color:#211d25;font-weight:600; }
+.builder-format-switch button i { margin-right:7px; }
+.arena-intro { display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:25px; }
+.arena-intro h3 { font-size:26px;font-weight:600;letter-spacing:-.04em;margin:8px 0; }
+.arena-intro p { max-width:680px;font-size:12px;color:#a0b1ca;line-height:1.8; }
+.arena-intro button { flex-shrink:0; }
+.arena-planner-grid { display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start; }
+.arena-planner-settings { display:grid;gap:17px;padding:22px;border-radius:16px; }
+.arena-planner-settings label,.arena-save-row label,.arena-browser-filters label:not(.sr-only) { display:grid;gap:8px;font-size:11px;color:#c0cce0; }
+#arena-builder :is(select,input) { min-width:0;width:100%;padding:12px;border:1px solid #43526e;border-radius:9px;background:#121d30;color:#edf2fa;font:inherit; }
+#arena-builder :is(select,input,button):focus-visible,.builder-format-switch button:focus-visible { outline:2px solid #ffa58f;outline-offset:3px; }
+.arena-explanation { font-size:11px;color:#96a9c7;line-height:1.85; }
+.arena-planner-settings .workspace-add-button { justify-content:center;font-size:11px; }
+.arena-budget { display:grid;grid-template-columns:1fr auto;gap:12px;padding-top:18px;border-top:1px solid #384763; }
+.arena-budget > span { font-size:11px;color:#b5c4da; }.arena-budget > strong { color:#ffc0ae;font-size:19px; }
+.arena-budget progress { grid-column:1/-1;width:100%;height:7px;accent-color:#ffa58f; }.arena-budget progress::-webkit-progress-bar { background:#101a2b;border-radius:5px; }.arena-budget progress::-webkit-progress-value { background:#ffa58f;border-radius:5px; }
+.arena-budget small { grid-column:1/-1;color:#8fa4c4;font-size:10px;line-height:1.7; }
+.arena-planner-settings .settings-message:empty { display:none; }
+.arena-board-heading,.arena-browser-heading { display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px; }
+.arena-board-heading h3 { font-size:19px;letter-spacing:-.035em;margin-top:7px;font-weight:600; }
+.arena-fighter-slots { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px; }
+.arena-team-slot { min-width:0;overflow:hidden;padding:14px;border:1px solid #3d4d6c;border-radius:14px;background:linear-gradient(160deg,#23324a,#192437); }
+.arena-slot-heading { display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:9px;color:#b2c2dc;margin-bottom:12px; }.arena-slot-heading b { color:#ffc0ae;white-space:nowrap; }
+.arena-selected-art { height:105px;overflow:hidden;border-radius:8px;margin-bottom:13px;background:#111c30; }
+.arena-selected-art img,.arena-candidate-art img,.arena-support-art img { width:100%;height:100%;object-fit:cover; }
+.arena-art-placeholder { display:grid;place-items:center;width:100%;height:100%;color:#9b83bc;background:#152038;font-size:28px; }
+.arena-team-slot h4 { font-weight:600;font-size:13px;line-height:1.4;overflow-wrap:anywhere; }.arena-role { display:inline-block;color:#c5b3f1;margin:8px 0;font-size:10px; }
+.arena-combat-stats { display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:10px 0;border-block:1px solid #384864;margin:5px 0 12px; }.arena-combat-stats dt { color:#91a5c5;font-size:8px; }.arena-combat-stats dd { color:#f2eafc;font-size:17px;margin-top:4px; }
+.arena-ability { display:block;font-size:10px;color:#ddd0f6; }.arena-card-effect { font-size:10px;color:#a8b8d0;line-height:1.75;margin-top:7px; }
+.arena-slot-actions { display:flex;gap:6px;margin-top:15px; }.arena-slot-actions button { padding:7px 9px;border:1px solid #4b5a73;border-radius:7px;font-size:10px; }.arena-slot-actions button:last-child { margin-left:auto;color:#ffc0ae; }
+.arena-slot-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;min-height:310px;text-align:center;border-style:dashed;background:#172235; }.arena-slot-empty > span { font-size:35px;letter-spacing:-.06em;color:#607a9d; }.arena-slot-empty strong { font-size:12px;color:#aebed7; }.arena-slot-empty small { color:#8297b7;font-size:10px;line-height:1.8; }
+.arena-support-heading { margin:23px 0 12px; }.arena-support-heading h4 { display:flex;justify-content:space-between;font-size:13px;font-weight:600; }.arena-support-heading span { color:#bdace4; }.arena-support-heading small { display:block;color:#92a7c7;font-size:10px;margin-top:7px; }
+.arena-support-slots { display:grid;gap:10px; }.arena-support-slot { display:flex;gap:13px;align-items:center;padding:13px;border:1px solid #3c4b65;border-radius:12px;background:#1c2940; }.arena-support-art { width:55px;height:65px;overflow:hidden;border-radius:8px;flex-shrink:0; }.arena-support-slot > div:nth-child(2) { flex:1;min-width:0; }.arena-support-slot strong { display:block;font-size:12px; }.arena-support-slot span { display:block;color:#c0afe6;font-size:10px;margin-top:5px; }.arena-support-slot p { color:#9cb0cc;font-size:10px;line-height:1.7;margin-top:6px; }
+.arena-team-advice { padding:15px;margin:18px 0;border-left:2px solid #bca3ef;background:#bca3ef09;font-size:11px;line-height:1.85;color:#b7c5dc; }
+.arena-save-row { display:flex;gap:10px;align-items:end;flex-wrap:wrap; }.arena-save-row label { flex:1;min-width:180px; }.arena-save-row button { font-size:11px; }
+.arena-card-browser,.arena-opponent-panel,.arena-rules-guide { padding:23px;border-radius:16px;margin-top:25px; }
+.arena-browser-heading h3 { font-size:19px;font-weight:600;letter-spacing:-.025em; }.arena-browser-heading p { font-size:10px;color:#91a7c8;line-height:1.7; }
+.arena-browser-filters { display:grid;grid-template-columns:minmax(0,2fr) 1fr 1.2fr;gap:14px;align-items:end;margin:20px 0; }.arena-browser-filters > input { font-size:12px!important; }
+.arena-card-pool { display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px;max-height:790px;overflow:auto;scrollbar-gutter:stable;padding:3px; }
+.arena-candidate { border:1px solid #3c4c69;border-radius:13px;overflow:hidden;background:#182539;display:flex;flex-direction:column; }.arena-candidate.arena-chosen { border-color:#ffa58f;box-shadow:0 0 0 1px #ffa58f55; }
+.arena-candidate-art { height:125px;position:relative;background:#121d30; }.arena-candidate-art > span { position:absolute;top:10px;right:10px;background:#152034eb;padding:5px 8px;border:1px solid #6c5d70;border-radius:7px;font-size:10px;color:#ffc0ae; }
+.arena-candidate-body { padding:15px;display:flex;flex-direction:column;flex:1; }.arena-candidate-body h4 { font-size:13px;font-weight:600; }.arena-candidate-body > small { color:#8fa5c4;font-size:10px;margin-top:5px; }.arena-candidate-body > button { margin-top:auto;justify-content:center;font-size:10px;padding:10px; }.arena-candidate-body > .arena-card-effect { margin-bottom:15px; }.arena-unavailable { display:block;text-align:center;line-height:1.7;color:#b5a3bd!important; }
+.arena-opponent-title { display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:20px 0; }.arena-opponent-title h4 { font-size:16px;font-weight:600; }.arena-opponent-title span { font-size:11px;color:#b6c7e1; }.arena-opponent-panel > .arena-explanation { margin:15px 0; }
+.arena-rules-guide summary { font-size:13px;cursor:pointer;color:#d2c1f0;font-weight:600; }.arena-rules-guide p { font-size:11px;color:#a1b3d0;line-height:1.9;margin-top:15px; }.arena-rules-guide a { display:inline-block;margin-top:15px;color:#ffb5a3;font-size:11px; }
+.saved-arena-info { display:flex;flex-wrap:wrap;gap:7px;margin:15px 0; }.saved-arena-info span { padding:5px 8px;border:1px solid #695681;border-radius:6px;color:#c9b5e9;font-size:9px; }.saved-arena-supports { margin:15px 0;font-size:11px;color:#abbcd6; }.saved-arena-supports p { margin-top:6px;color:#c8d4e6; }
+@media(max-width:1150px) {
+    .arena-planner-grid { grid-template-columns:1fr; }.arena-planner-settings { grid-template-columns:1fr 1fr; }.arena-planner-settings > .arena-budget,.arena-planner-settings > .settings-message { grid-column:1/-1; }.arena-intro { align-items:start; }.arena-intro button { font-size:10px; }
+}
+@media(max-width:600px) {
+    .builder-format-switch { display:flex; }.builder-format-switch button { flex:1;padding:10px;font-size:10px; }.arena-intro { flex-direction:column;gap:14px; }.arena-intro h3 { font-size:22px; }.arena-planner-settings { grid-template-columns:1fr;padding:18px; }.arena-planner-settings > * { grid-column:1!important; }.arena-fighter-slots { grid-template-columns:1fr; }.arena-team-slot { display:grid;grid-template-columns:80px minmax(0,1fr);gap:0 14px; }.arena-team-slot .arena-selected-art { grid-column:1;grid-row:2/span 5;height:110px; }.arena-team-slot .arena-slot-heading,.arena-team-slot .arena-slot-actions { grid-column:1/-1; }.arena-team-slot :is(h4,.arena-role,.arena-combat-stats,.arena-ability,.arena-card-effect) { grid-column:2; }.arena-team-slot .arena-selected-art + h4 { margin-top:0; }.arena-slot-empty { display:flex;min-height:150px; }.arena-card-browser,.arena-opponent-panel,.arena-rules-guide { padding:17px; }.arena-browser-heading,.arena-board-heading { align-items:start;flex-direction:column; }.arena-browser-filters { grid-template-columns:1fr 1fr;gap:10px; }.arena-browser-filters > input { grid-column:1/-1; }.arena-card-pool { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }.arena-candidate-body { padding:11px; }.arena-candidate-body h4 { font-size:12px; }.arena-candidate-art { height:100px; }.arena-candidate-body button { padding:9px 5px; }.arena-combat-stats dd { font-size:15px; }.arena-support-slot { flex-wrap:wrap; }.arena-save-row > label { flex-basis:100%; }
+}
 @media(min-width:601px) and (max-width:1150px) {
     .builder-console > .builder-controls { grid-column:2;grid-row:1/span 5;margin:0;align-self:start; }
     .builder-console > p:not(.builder-availability):not(#builder-message) { grid-column:1;grid-row:auto; }

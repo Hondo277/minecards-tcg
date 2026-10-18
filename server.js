@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const storage = require('./storage');
 const { promisify } = require('util');
 const { createMinecards, collectionData, localData } = require('./minecards');
+const ArenaRules = require('./arena-rules');
 
 const scrypt = promisify(crypto.scrypt);
 const HOST = '127.0.0.1';
@@ -122,6 +123,26 @@ function validData(data) {
         Array.isArray(data.favoriteDecks) && data.favoriteDecks.length <= 500 &&
         data.cards.every(card => card && typeof card.nom === 'string' && card.nom.length <= 120) &&
         data.favoriteDecks.every(deck => deck && typeof deck.name === 'string' && deck.name.length <= 120);
+}
+
+function normalizeArenaFavorites(data,user) {
+    const available=new Map((user.minecards?.cards||[]).map(card=>[ArenaRules.id(card),card]));
+    const signature=deck=>JSON.stringify({cards:(deck.cards||[]).map(ArenaRules.id),supports:(deck.supports||[]).map(ArenaRules.id),tactic:deck.tactic,arenaId:deck.arenaId});
+    for(let index=0;index<data.favoriteDecks.length;index++){
+        const deck=data.favoriteDecks[index];if(deck.mode!=='arena')continue;
+        if(!Array.isArray(deck.cards)||!Array.isArray(deck.supports)||deck.cards.some(card=>!card||typeof card!=='object')||deck.supports.some(card=>!card||typeof card!=='object'))return 'Composition d’arène invalide.';
+        const existing=(user.data?.favoriteDecks||[]).find(item=>item.id===deck.id&&item.mode==='arena');
+        // Les favoris historiques restent consultables si une carte a quitté le stock.
+        if(existing&&signature(existing)===signature(deck)){
+            data.favoriteDecks[index]={...existing,name:deck.name};continue;
+        }
+        if(!Object.hasOwn(ArenaRules.environments,deck.arenaId)||!Object.hasOwn(ArenaRules.stances,deck.tactic))return 'Arène ou posture invalide.';
+        const fighters=deck.cards.map(card=>available.get(ArenaRules.id(card))),supports=deck.supports.map(card=>available.get(ArenaRules.id(card)));
+        if([...fighters,...supports].some(card=>!card))return 'Une carte de cette équipe n’est plus disponible. Synchronise ta collection.';
+        const error=ArenaRules.validate(fighters,supports);if(error)return error;
+        data.favoriteDecks[index]={...deck,cards:structuredClone(fighters),supports:structuredClone(supports),teamCost:[...fighters,...supports].reduce((sum,card)=>sum+ArenaRules.cost(card),0),totalPower:fighters.reduce((sum,card)=>sum+card.valeur,0),targetPower:null};
+    }
+    return null;
 }
 
 async function handleApi(req, res, url) {
@@ -299,6 +320,8 @@ async function handleApi(req, res, url) {
         const latest = readDb();
         const current = getUserFromRequest(req, latest);
         if (!current) return sendJson(res, 401, { error:'Connexion requise.' });
+        const arenaError=normalizeArenaFavorites(data,current);
+        if(arenaError)return sendJson(res,409,{error:arenaError});
         current.data = data;
         writeDb(latest);
         return sendJson(res, 200, { ok:true });
@@ -328,7 +351,7 @@ async function handler(req, res) {
         catch { return sendJson(res, 400, { error:'URL invalide.' }); }
         const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
         const filePath = path.resolve(__dirname, requested);
-        if (!['index.html','theme.css','minecards-ui.js','profile-media.js','profile-showcase.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
+        if (!['index.html','theme.css','minecards-ui.js','profile-media.js','profile-showcase.js','arena-rules.js','arena-builder.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
         fs.readFile(filePath, (error, content) => {
             if (error) return sendJson(res, error.code === 'ENOENT' ? 404 : 500, { error:error.code === 'ENOENT' ? 'Fichier introuvable.' : 'Erreur serveur.' });
             res.writeHead(200, { 'Content-Type':MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'X-Content-Type-Options':'nosniff', 'Cache-Control':'no-cache' });

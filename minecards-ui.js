@@ -7,7 +7,7 @@ function mcMessage(message,success=false){const el=document.getElementById('mc-e
 function mcErrorMessage(error){return error.message+(error.retryAfter?' Réessaie dans '+error.retryAfter+' secondes.':'');}
 function mcAutoEnabled(){try{return localStorage.getItem('mc-auto-'+activeProfile?.id)!=='false';}catch{return true;}}
 function mcSetAutoSync(){try{localStorage.setItem('mc-auto-'+activeProfile.id,String(document.getElementById('mc-auto-sync').checked));}catch{} }
-function mcStop(){mcGeneration++;mcExploreSequence++;if(mcTimer)clearInterval(mcTimer);mcTimer=null;mcConfigured=false;mcBusy=false;mcLastSync=null;document.getElementById('mc-api-key').value='';document.getElementById('mc-results').textContent='Choisis une rubrique puis clique sur « Afficher ».';document.getElementById('mc-detail').classList.add('hidden');}
+function mcStop(){mcGeneration++;mcExploreSequence++;if(mcTimer)clearInterval(mcTimer);mcTimer=null;mcConfigured=false;mcBusy=false;mcLastSync=null;arenaReset();document.getElementById('mc-api-key').value='';document.getElementById('mc-results').textContent='Choisis une rubrique puis clique sur « Afficher ».';document.getElementById('mc-detail').classList.add('hidden');}
 function mcApplyStatus(state){
     mcConfigured=state.configured;mcLastSync=state.lastSync;
     document.getElementById('mc-sync-button').disabled=!mcConfigured||mcBusy||state.job?.running;

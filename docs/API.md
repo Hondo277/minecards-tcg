@@ -26,6 +26,10 @@ Le navigateur conserve un cookie de session `HttpOnly`. Les appels authentifiés
 
 Une carte utilise `id`, `nom`, `rarete`, `valeur`, `attaque`, `defense`, `image`. `valeur` désigne la puissance. Les cartes importées exposent `_minecards.cardId`, `_minecards.quantity` et, après synchronisation, `_minecards.power` (puissance officielle). Les favoris peuvent enregistrer le mode du créateur : `closest`, `ceiling` ou `strongest`.
 
+La synchronisation conserve aussi dans `_minecards` les attributs officiels `category`, `dimension`, `attack`, `defense`, `active`, `rarity` et `nameEn`. Le préparateur tactique utilise ces attributs sans écraser `attaque` et `defense` historiques.
+
+Un favori `mode: "arena"` contient trois entrées `cards`, de zéro à deux entrées `supports`, `arenaId` (`overworld`, `nether`, `end`), `tactic` (`balanced`, `aggressive`, `defensive`) et `teamCost`. `totalPower` est un repère de collection pour les trois créatures ; `targetPower` vaut `null`. Les nouvelles compositions et changements d’équipe sont validés côté serveur avec le stock réellement synchronisé : catégories, activité, raretés, unicité et coût total ≤ 18. Les instantanés des anciens favoris restent consultables si une carte quitte la collection. Une composition refusée renvoie `409` avec la raison.
+
 La sauvegarde filtre les cartes importées pour ne pas les transformer en cartes locales. Les favoris gardent leurs instantanés. Limites : 1 000 cartes locales et 500 decks par compte.
 
 ## MineCards
