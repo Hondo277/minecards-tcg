@@ -215,7 +215,7 @@ async function handleApi(req, res, url) {
         return sendJson(res, 200, { ok:true }, { 'Set-Cookie':'minecards_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + (storage.isCloud ? '; Secure' : '') });
     }
     if (!user) return sendJson(res, 401, { error:'Connexion requise.' });
-    if(['/api/export','/api/notebook','/api/sessions','/api/sessions/revoke','/api/admin/overview','/api/admin/audit','/api/admin/settings'].includes(url.pathname)||/^\/api\/admin\/users\/[0-9a-f-]{36}\/(access|sessions\/revoke|bulk-delete)$/i.test(url.pathname)){
+    if(['/api/export','/api/notebook','/api/recycler/wallet','/api/sessions','/api/sessions/revoke','/api/admin/overview','/api/admin/audit','/api/admin/settings'].includes(url.pathname)||/^\/api\/admin\/users\/[0-9a-f-]{36}\/(access|sessions\/revoke|bulk-delete)$/i.test(url.pathname)){
         if(await workspace.handle(req,res,url,user))return;
     }
     if (url.pathname.startsWith('/api/minecards/')) return minecards.handle(req,res,url,user);

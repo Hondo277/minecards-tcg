@@ -36,7 +36,7 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Barème officiel : Charbon **1**, Cuivre **2**, Fer **5**, Or **10**, Diamant **25**, Netherite **50** points ; **50 points = un booster classique de 5 cartes**.
 - Recherche, rareté, tri, quantités, plans de 100 cartes différentes maximum, protections facultatives des cartes favorites et des cartes utilisées dans les decks.
 - Préparation du prochain seuil de 50 points avec les raretés basses en premier, export CSV et copie du plan.
-- Simulation facultative avec un solde saisi manuellement : le potentiel de points est distinct du solde réellement détenu.
+- Compteurs du potentiel total des doublons standard et des boosters obtenables (50 points chacun), dans la collection, le profil et le recycleur. Solde possédé renseigné manuellement, enregistré par compte avec sa date, effaçable et inclus dans l’export personnel. Le potentiel et le solde restent distincts ; l’API ne fournit pas le portefeuille.
 - L'API reste en lecture seule : aucun recyclage, échange de points ou ouverture de booster n'est effectué ici. Le bouton ouvre le [recycleur officiel](https://minecards.vercel.app/recycleur) pour réaliser ces opérations.
 - Les cartes locales, les cartes Mythiques et les copies sans détail des finitions sont exclues. Synchroniser après la mise à jour pour lire les nouvelles quantités.
 

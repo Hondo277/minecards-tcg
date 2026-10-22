@@ -53,7 +53,17 @@ function createWorkspace({readDb,writeDb,readBody,sendJson,getUserFromRequest,pu
         if(!user)return false;
         if(url.pathname==='/api/export'&&req.method==='GET'){
             const latest=readDb().users.find(item=>item.id===user.id);
-            sendJson(res,200,{format:'minecards-personal-export',version:1,exportedAt:new Date().toISOString(),profile:publicUser(latest),data:collectionData(latest),notebook:latest.notebook||{}});return true;
+            sendJson(res,200,{format:'minecards-personal-export',version:1,exportedAt:new Date().toISOString(),profile:publicUser(latest),data:collectionData(latest),notebook:latest.notebook||{},recyclerWallet:latest.recyclerWallet||null});return true;
+        }
+        if(url.pathname==='/api/recycler/wallet'){
+            if(req.method==='GET'){sendJson(res,200,{wallet:readDb().users.find(item=>item.id===user.id)?.recyclerWallet||null});return true;}
+            if(req.method==='PUT'){
+                const body=await objectBody(req,1024);
+                if(body.balance!==null&&(!Number.isSafeInteger(body.balance)||body.balance<0||body.balance>1000000000))throw fail(400,'Le solde doit être un entier entre 0 et 1 000 000 000 points.');
+                const db=readDb(),current=getUserFromRequest(req,db);if(!current)throw fail(401,'Connexion requise.');
+                current.recyclerWallet=body.balance===null?null:{balance:body.balance,source:'manual',updatedAt:new Date().toISOString()};
+                writeDb(db);sendJson(res,200,{wallet:current.recyclerWallet});return true;
+            }
         }
         if(url.pathname==='/api/notebook'){
             if(req.method==='GET'){sendJson(res,200,{entries:readDb().users.find(item=>item.id===user.id)?.notebook||{}});return true;}

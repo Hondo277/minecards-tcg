@@ -52,4 +52,4 @@ Le lancement local reste `npm start` avec le stockage privé dans `data/`. Les v
 
 Références : [Vercel Functions](https://vercel.com/docs/functions), [API REST Upstash](https://upstash.com/docs/redis/features/restapi).
 
-La mise à jour des finitions n'exige aucune nouvelle variable ni migration destructive. Les anciennes copies restent lisibles et sont signalées comme incomplètes jusqu'à la prochaine synchronisation. Le préparateur de recyclage ne stocke aucun portefeuille de points et n'appelle aucun endpoint d'écriture distant.
+La mise à jour des finitions n'exige aucune nouvelle variable ni migration destructive. Les anciennes copies restent lisibles et sont signalées comme incomplètes jusqu'à la prochaine synchronisation. Le préparateur sauvegarde uniquement une indication manuelle du solde dans le compte privé (user.recyclerWallet), avec sa date ; il n'accède pas au portefeuille réel et n'appelle aucun endpoint d'écriture MineCards. Cette indication utilise le stockage existant, sans nouvelle variable d'environnement.

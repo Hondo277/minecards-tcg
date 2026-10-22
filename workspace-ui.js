@@ -26,11 +26,13 @@ async function workspaceInit(user){
         for(const id of workspaceFilterIds)if(Object.hasOwn(saved,id)){if(id==='collection-pinned')wn(id).checked=saved[id]===true;else{wn(id).value=String(saved[id]);if(wn(id).tagName==='SELECT'&&wn(id).selectedIndex<0)wn(id).value=id==='sort-select'?'valeur-desc':'all';}}
         setCollectionView(saved.view==='list'?'list':'grid');
     }catch{}
-    const results=await Promise.allSettled([apiRequest('/api/notebook'),apiRequest('/api/site')]);
+    const results=await Promise.allSettled([apiRequest('/api/notebook'),apiRequest('/api/site'),apiRequest('/api/recycler/wallet')]);
     if(generation!==workspaceGeneration||activeProfile?.id!==user.id)return;
     if(results[0].status==='fulfilled')notebookEntries=results[0].value.entries;
     else workspaceToast('Le carnet personnel n’a pas pu être chargé : '+results[0].reason.message,true);
     if(results[1].status==='fulfilled')workspacePaintSite(results[1].value);
+    if(results[2].status==='fulfilled')recyclerWalletReceive(results[2].value.wallet);
+    else{recyclerWalletState='error';recyclerRenderCounters();}
     workspaceSiteTimer=setInterval(()=>{if(document.visibilityState==='visible')void workspaceRefreshSite();},60000);
 }
 async function workspaceRefreshSite(){const generation=workspaceGeneration;try{const settings=await apiRequest('/api/site');if(generation===workspaceGeneration)workspacePaintSite(settings);}catch{}}

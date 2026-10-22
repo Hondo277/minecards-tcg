@@ -1,9 +1,44 @@
 'use strict';
 const recyclerSelection=new Map();
+let recyclerWallet=null,recyclerWalletState='loading',recyclerWalletSaving=false;
+const recyclerBalanceLimit=1000000000;
+function recyclerWalletReceive(wallet){
+    recyclerWallet=wallet;recyclerWalletState='ready';
+    wn('recycler-balance').value=wallet===null?'':String(wallet.balance);
+    recyclerRenderCounters();recyclerRenderSummary();
+}
+function recyclerRenderCounters(){
+    const info=EditionRules.summary(cards),cost=EditionRules.boosterCost,points=info.potentialPoints,boosters=Math.floor(points/cost),wallet=recyclerWallet;
+    const fmt=value=>value.toLocaleString('fr-FR');
+    const status=wallet?'Solde manuel · '+new Date(wallet.updatedAt).toLocaleString('fr-FR'):recyclerWalletState==='loading'?'Chargement du solde…':recyclerWalletState==='error'?'Solde indisponible · réessaie ci-dessous':'À renseigner depuis MineCards';
+    const partial=info.unknownCards>0?'Potentiel partiel : '+info.unknownCards+' carte(s) sans détail des finitions. ':'';
+    const html=`<div class="recycle-counter"><i class="fa-solid fa-recycle" aria-hidden="true"></i><strong>${fmt(points)}</strong><span>Points obtenables avec tes doublons</span><small>${fmt(info.recyclableCopies)} standard recyclables · original conservé</small></div><div class="recycle-counter"><i class="fa-solid fa-box-open" aria-hidden="true"></i><strong>${fmt(boosters)}</strong><span>Boosters grâce à ces doublons</span><small>50 points par booster · ${fmt(points%cost)} point(s) restant(s)</small></div><div class="recycle-counter recycle-wallet"><i class="fa-solid fa-coins" aria-hidden="true"></i><strong>${wallet?fmt(wallet.balance):'—'}</strong><span>Mes points possédés · solde renseigné</span><small>${escapeHtml(status)}</small><button type="button" class="secondary-button" onclick="recyclerEditWallet()">${wallet?'Actualiser mon solde':'Renseigner mon solde'}</button></div><p>${partial}Potentiel de toute la collection, avant les protections du plan. Holographiques exclues.${wallet?' Ton solde renseigné finance '+fmt(Math.floor(wallet.balance/cost))+' booster(s) ; avec tous les doublons : '+fmt(Math.floor((wallet.balance+points)/cost))+' booster(s).':''}</p>`;
+    for(const id of ['collection-recycle-counters','profile-recycle-counters','recycler-total-counters'])wn(id).innerHTML=html;
+    wn('recycler-wallet-status').textContent=status+' · L’API ne fournit pas ce solde. Il reste à actualiser après tes échanges sur MineCards.';
+    for(const id of ['recycler-wallet-save','recycler-wallet-clear'])wn(id).disabled=recyclerWalletSaving;
+}
+function recyclerEditWallet(){switchTab('recycler');wn('recycler-balance').focus();wn('recycler-balance').scrollIntoView({behavior:'smooth',block:'center'});}
+async function recyclerSaveWallet(clear=false){
+    if(recyclerWalletSaving||!activeProfile)return;
+    const field=wn('recycler-balance'),raw=field.value,balance=clear?null:Number(raw);
+    if(!clear&&(raw===''||!Number.isSafeInteger(balance)||balance<0||balance>recyclerBalanceLimit)){recyclerMessage('Saisis un solde entier entre 0 et 1 000 000 000 points.',true);field.focus();return;}
+    const generation=workspaceGeneration,profileId=activeProfile.id;
+    recyclerWalletSaving=true;recyclerRenderCounters();
+    try{
+        const result=await apiRequest('/api/recycler/wallet',{method:'PUT',body:JSON.stringify({balance})});
+        if(generation!==workspaceGeneration||activeProfile?.id!==profileId)return;
+        recyclerWalletReceive(result.wallet);recyclerMessage(clear?'Solde renseigné effacé.':'Solde manuel enregistré pour ton compte. Aucun point n’a été ajouté sur MineCards.');
+    }catch(error){if(generation===workspaceGeneration&&activeProfile?.id===profileId)recyclerMessage(error.message,true);}
+    finally{if(generation===workspaceGeneration&&activeProfile?.id===profileId){recyclerWalletSaving=false;recyclerRenderCounters();}}
+}
 function recyclerMessage(text,error=false){const node=wn('recycler-message');node.textContent=text;node.classList.toggle('is-error',error);}
 function recyclerReset(){
+    recyclerWallet=null;recyclerWalletState='loading';recyclerWalletSaving=false;
     recyclerSelection.clear();wn('recycler-balance').value='';wn('recycler-exchange-count').value='1';wn('recycler-search').value='';wn('recycler-rarity').value='all';wn('recycler-sort').value='points-desc';wn('recycler-protect-notebook').checked=true;wn('recycler-protect-decks').checked=true;
     wn('recycler-list').textContent='';wn('recycler-message').textContent='';
+    for(const id of ['collection-recycle-counters','profile-recycle-counters','recycler-total-counters'])wn(id).textContent='';
+    wn('recycler-wallet-status').textContent='Chargement du solde…';
+    for(const id of ['recycler-wallet-save','recycler-wallet-clear'])wn(id).disabled=false;
 }
 function editionBadge(card){
     const info=EditionRules.finishes(card),secret=EditionRules.secret(card);
@@ -16,6 +51,7 @@ function updateEditionStats(){
     const tiles=[['fa-wand-magic-sparkles',info.holographicCopies,'Exemplaires holographiques'],['fa-copy',info.recyclableCopies,'Doublons standard recyclables'],['fa-recycle',info.potentialPoints,'Points de recyclage potentiels'],['fa-gem',info.mythicCards,'Cartes Mythiques']];
     const html=tiles.map(([icon,value,label])=>`<div><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${value.toLocaleString('fr-FR')}${partial?' <small>connus</small>':''}</strong><span>${label}</span></div>`).join('')+(partial?`<p>${info.unknownCards} carte(s) importée(s) sans détail des finitions : synchronise la collection. Les potentiels ne représentent pas ton solde de points.</p>`:'<p>Finitions visuelles · holographiques protégées · les points affichés sont un potentiel, pas ton solde.</p>');
     for(const id of ['collection-edition-stats','profile-edition-stats'])wn(id).innerHTML=html;
+    recyclerRenderCounters();
     recyclerRender();
 }
 function recyclerRows(){
@@ -61,7 +97,7 @@ function recyclerSetQuantity(id,value,input=null){
 function recyclerPlan(){return recyclerRows().filter(row=>!row.protected&&recyclerSelection.has(row.id)).map(row=>({...row,quantity:Math.min(row.max,recyclerSelection.get(row.id)),points:Math.min(row.max,recyclerSelection.get(row.id))*row.rate}));}
 function recyclerRenderSummary(){
     const plan=recyclerPlan(),quantity=plan.reduce((sum,row)=>sum+row.quantity,0),points=plan.reduce((sum,row)=>sum+row.points,0);
-    const raw=wn('recycler-balance').value,balance=raw===''?null:Number(raw),validBalance=balance!==null&&Number.isSafeInteger(balance)&&balance>=0;
+    const raw=wn('recycler-balance').value,balance=raw===''?null:Number(raw),validBalance=balance!==null&&Number.isSafeInteger(balance)&&balance>=0&&balance<=recyclerBalanceLimit;
     const total=points+(validBalance?balance:0),boosters=Math.floor(total/EditionRules.boosterCost),count=Number(wn('recycler-exchange-count').value),validCount=Number.isSafeInteger(count)&&count>=0;
     wn('recycler-plan-count').textContent=quantity.toLocaleString('fr-FR');wn('recycler-plan-points').textContent=points.toLocaleString('fr-FR');wn('recycler-plan-boosters').textContent=boosters.toLocaleString('fr-FR');
     wn('recycler-projection-note').textContent=(validBalance?'Projection avec le solde saisi manuellement ('+balance+' pts).':'Solde MineCards non fourni par l’API : projection depuis la sélection uniquement.')+' '+(validCount&&count<=boosters?'Après '+count+' booster(s) à 50 points : '+(total-count*50)+' points projetés.':validCount?'Il manque '+Math.max(0,count*50-total)+' points pour '+count+' booster(s).':'Saisis un nombre entier de boosters.');
@@ -74,7 +110,7 @@ function recyclerPrepare(mode){
     recyclerRender();recyclerMessage('Plan préparé : aucune carte n’a été recyclée. Vérifie-le puis effectue l’opération sur MineCards.');
 }
 function recyclerPrepareBooster(){
-    const raw=wn('recycler-balance').value,balance=Number(raw),known=raw!==''&&Number.isSafeInteger(balance)&&balance>=0;
+    const raw=wn('recycler-balance').value,balance=Number(raw),known=raw!==''&&Number.isSafeInteger(balance)&&balance>=0&&balance<=recyclerBalanceLimit;
     const current=recyclerPlan().reduce((sum,row)=>sum+row.points,0)+(known?balance:0);
     let needed=50-current%50;
     const available=recyclerFilteredRows().filter(row=>!row.protected).sort((a,b)=>a.rate-b.rate||a.card.nom.localeCompare(b.card.nom,'fr'));
