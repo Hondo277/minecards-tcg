@@ -11,16 +11,18 @@ function collectionStats(cards){
     for(const card of cards){
         const remote=card._minecards;
         if(!remote||typeof remote.cardId!=='string'||!Number.isSafeInteger(remote.quantity)||remote.quantity<1)continue;
-        const key='mc:'+remote.cardId;groups.set(key,Math.max(groups.get(key)||0,remote.quantity));remoteNames.add(normalize(card.nom));remoteIds.add(remote.cardId);
+        const key='mc:'+remote.cardId,previous=groups.get(key);
+        if(!previous||remote.quantity>previous.quantity||remote.quantity===previous.quantity&&!EditionRules.finishes(previous.card).known&&EditionRules.finishes(card).known)groups.set(key,{card,quantity:remote.quantity});
+        remoteNames.add(normalize(card.nom));remoteIds.add(remote.cardId);
     }
     for(const card of cards){
         if(card._minecards)continue;
         const name=normalize(card.nom),id=String(card.id),alias=({'cheval z':'zombie_horse','piglin z':'zombified_piglin','illusionnistes':'illusioner','debris antique':'ancient_debris'})[name];
         if(remoteNames.has(name)||alias&&remoteIds.has(alias)||localIds.has(id))continue;
-        localIds.add(id);const key=alias?'mc:'+alias:'name:'+name;groups.set(key,(groups.get(key)||0)+1);
+        localIds.add(id);const key=alias?'mc:'+alias:'name:'+name,previous=groups.get(key);groups.set(key,{card:previous?.card||card,quantity:(previous?.quantity||0)+1});
     }
-    const quantities=[...groups.values()].filter(value=>value>0);
-    return {unique:quantities.length,copies:quantities.reduce((sum,value)=>sum+value,0),duplicates:quantities.reduce((sum,value)=>sum+Math.max(0,value-1),0)};
+    const entries=[...groups.values()].filter(entry=>entry.quantity>0);
+    return {unique:entries.length,copies:entries.reduce((sum,entry)=>sum+entry.quantity,0),duplicates:entries.reduce((sum,entry)=>sum+EditionRules.duplicates(entry.card,entry.quantity),0)};
 }
 function recordAudit(db,actor,action,target,details=''){
     const entry={id:crypto.randomUUID(),createdAt:new Date().toISOString(),actor:{id:actor.id,username:actor.username},action,target:target?{id:target.id,username:target.username}:null,details:String(details).slice(0,300)};

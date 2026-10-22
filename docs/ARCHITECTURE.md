@@ -88,7 +88,7 @@ L’identité stable `_minecards.cardId` prime pour les cartes importées. Les n
 
 Les favoris sont des instantanés de cartes avec nom, cible, total et date. Le favori mis en avant est référencé par son identifiant dans le profil ; le serveur vérifie son appartenance au compte.
 
-Les doublons sont les exemplaires supplémentaires après en avoir conservé un par carte différente. Aucune statistique de combat ou d’ouverture de booster n’est inventée.
+Les doublons comptés sont les exemplaires standard supplémentaires après en avoir conservé un par carte différente : max(standardQuantity - 1, 0). Les holographiques sont toujours exclues, ainsi que les finitions inconnues jusqu’à synchronisation. EditionRules.duplicates centralise ce calcul pour les compteurs, le profil, les tris, filtres, fiches, exports et indicateurs administrateur. Le total des exemplaires reste standard + holographique. Aucune statistique de combat ou d’ouverture de booster n’est inventée.
 
 Le mode tactique utilise `arena-rules.js` dans le navigateur et sur le serveur : trois créatures, jusqu’à deux soutiens, coût total de 18 points, statistiques de combat distinctes des attributs historiques. `arena-builder.js` gère la sélection, l’ordre, les postures, les conseils de terrain et les lectures d’arènes via la passerelle existante. Le choix automatique utilise un score heuristique explicite dans le code ; il ne simule pas les combats. Les nouvelles équipes favorites sont reconstruites depuis le stock importé côté serveur. Voir [ARENAS.md](ARENAS.md) pour les règles observées et les limites.
 

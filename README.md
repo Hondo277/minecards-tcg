@@ -17,8 +17,8 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Affichage en grille ou en liste, recherche, filtres de rareté et classements.
 - Puissance, attaque, défense et image de chaque carte.
 - Quantité disponible pour les cartes synchronisées depuis MineCards.
-- Compteur de doublons dans la collection et le profil : somme de `max(quantité − 1, 0)` pour chaque carte différente. Exemple : 3 exemplaires = 2 doublons ; l’original n’est jamais compté.
-- Tris des doublons croissant / décroissant : affichent uniquement les cartes ayant au moins deux exemplaires, avec le nombre supplémentaire par carte et le total filtré. La recherche et le filtre de rareté restent disponibles.
+- Compteur de doublons dans la collection et le profil : somme de `max(standardQuantity − 1, 0)` pour chaque carte MineCards avec finitions connues. Exemple : 3 standards et 2 holographiques = 2 doublons ; un original standard est conservé et toutes les holographiques sont exclues. Les anciennes copies sans détail des finitions sont exclues jusqu’à leur actualisation.
+- Tris des doublons croissant / décroissant : affichent uniquement les cartes ayant au moins deux exemplaires standard connus, avec le nombre supplémentaire par carte et le total filtré. La recherche et le filtre de rareté restent disponibles.
 - Fusion des cartes locales historiques et des cartes importées, sans compter deux fois les correspondances reconnues.
 - Un nouveau compte démarre sans carte ni deck favori.
 - Filtres combinables par origine, catégorie, dimension, nombre d'exemplaires, puissance minimum / maximum et cartes favorites ; recherche tolérante aux accents incluant les notes et noms anglais.

@@ -80,3 +80,5 @@ La production conserve les données dans Redis, et non dans les fichiers de la f
 ## Finitions et potentiel de recyclage
 
 Le panneau affiche les holographiques, doublons standard recyclables, points potentiels et cartes Mythiques connus. Le filtre de finition et les colonnes CSV distinguent ces quantités. Les anciennes copies incomplètes sont marquées « à actualiser » : zéro holographique connu ne signifie pas que la collection n'en possède aucun. Le potentiel n'est pas un solde et le panneau admin ne recycle aucune carte d'un membre.
+
+Les compteurs et tris de doublons excluent les holographiques : un original standard par carte est conservé. Les finitions inconnues sont exclues des totaux connus jusqu’à synchronisation ; la fiche affiche « — » et l’export une valeur vide pour ces doublons inconnus. Le nombre total d’exemplaires inclut toujours les standards et holographiques.

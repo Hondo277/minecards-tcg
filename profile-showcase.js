@@ -8,7 +8,7 @@ function collectionCopyStats(collection) {
         const {cardId,quantity}=card._minecards;
         if(typeof cardId!=='string'||!cardId||!Number.isSafeInteger(quantity)||quantity<1)continue;
         const key='remote:'+cardId,previous=groups.get(key);
-        if(!previous||quantity>previous.quantity)groups.set(key,{card,quantity});
+        if(!previous||quantity>previous.quantity||quantity===previous.quantity&&!EditionRules.finishes(previous.card).known&&EditionRules.finishes(card).known)groups.set(key,{card,quantity});
         remoteIds.add(cardId);
         remoteNames.add(deckName(card));
     }
@@ -23,7 +23,7 @@ function collectionCopyStats(collection) {
         const previous=groups.get(key);
         groups.set(key,{card:previous?.card||card,quantity:(previous?.quantity||0)+1});
     }
-    const entries=[...groups.values()].map(entry=>({...entry,duplicates:Math.max(0,entry.quantity-1)}));
+    const entries=[...groups.values()].map(entry=>({...entry,duplicates:EditionRules.duplicates(entry.card,entry.quantity)}));
     return {entries,cards:entries.map(entry=>entry.card),unique:entries.length,copies:entries.reduce((sum,entry)=>sum+entry.quantity,0),duplicates:entries.reduce((sum,entry)=>sum+entry.duplicates,0)};
 }
 
@@ -82,7 +82,7 @@ function renderProfileShowcase() {
     const rarityNames=['Charbon','Cuivre','Fer','Or','Diamant','Netherite','Mythique'];
     const rarityCount=new Map();
     for (const card of collection) {const key=normalize(card.rarete);rarityCount.set(key,(rarityCount.get(key)||0)+1);}
-    const stats=[['fa-layer-group',counts.unique,'Cartes uniques'],['fa-clone',copies,'Exemplaires'],['fa-copy',counts.duplicates,'Doublons hors originaux'],['fa-star',favoriteDecks.length,'Decks favoris'],['fa-gem',rarityCount.size,'Raretés possédées'],['fa-bolt',strongestPower,'Deck maximum']];
+    const stats=[['fa-layer-group',counts.unique,'Cartes uniques'],['fa-clone',copies,'Exemplaires'],['fa-copy',counts.duplicates,'Doublons standard connus'],['fa-star',favoriteDecks.length,'Decks favoris'],['fa-gem',rarityCount.size,'Raretés possédées'],['fa-bolt',strongestPower,'Deck maximum']];
     document.getElementById('profile-collection-stats').innerHTML=stats.map(([icon,value,label])=>`<div><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${value===null?'—':value.toLocaleString('fr-FR')}</strong><span>${label}</span></div>`).join('');
     const created=new Date(activeProfile.createdAt);
     document.getElementById('profile-member-meta').innerHTML=`<span class="profile-collector-badge"><i class="fa-solid ${activeProfile.role==='admin'?'fa-shield-halved':'fa-gem'}" aria-hidden="true"></i> ${activeProfile.role==='admin'?'Administrateur':'Collectionneur'}</span>${Number.isNaN(created.getTime())?'':`<span><i class="fa-regular fa-calendar" aria-hidden="true"></i> Membre depuis ${escapeHtml(created.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}))}</span>`}<span><i class="fa-solid fa-lock" aria-hidden="true"></i> Espace personnel</span>`;

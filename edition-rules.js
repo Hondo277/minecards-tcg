@@ -16,6 +16,12 @@
         return {known,total,standard:known?standard:null,holographic:known?holographic:null,recyclable:known&&!secret(meta)?Math.max(0,standard-1):0};
     }
     function finishes(card){return quantities(card?._minecards);}
+    function duplicates(card,localQuantity=1){
+        // Les anciennes copies sans détail des finitions ne permettent pas de compter les standard.
+        if(card?._minecards)return finishes(card).recyclable;
+        if(card?.finish==='HOLOGRAPHIC'||secret(card))return 0;
+        return integer(localQuantity)?Math.max(0,localQuantity-1):0;
+    }
     function points(card){return secret(card)?null:rates[rarity(card)]??null;}
     function hasHolo(card){return card?.finish==='HOLOGRAPHIC'||finishes(card).holographic>0;}
     function inventory(cards){
@@ -38,5 +44,5 @@
         }
         return result;
     }
-    return Object.freeze({rates,boosterCost,rarity,secret,quantities,finishes,points,hasHolo,inventory,summary});
+    return Object.freeze({rates,boosterCost,rarity,secret,quantities,finishes,duplicates,points,hasHolo,inventory,summary});
 });
