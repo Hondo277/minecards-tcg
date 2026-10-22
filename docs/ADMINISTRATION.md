@@ -76,3 +76,7 @@ La production conserve les données dans Redis, et non dans les fichiers de la f
 | Vercel demande l’import des comptes | Initialiser la base selon VERCEL.md |
 | Comptes locaux différents du site en ligne | Les stockages sont indépendants après le transfert initial |
 | Interface ancienne | Actualiser complètement la page et vérifier la version déployée |
+
+## Finitions et potentiel de recyclage
+
+Le panneau affiche les holographiques, doublons standard recyclables, points potentiels et cartes Mythiques connus. Le filtre de finition et les colonnes CSV distinguent ces quantités. Les anciennes copies incomplètes sont marquées « à actualiser » : zéro holographique connu ne signifie pas que la collection n'en possède aucun. Le potentiel n'est pas un solde et le panneau admin ne recycle aucune carte d'un membre.

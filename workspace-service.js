@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const storage=require('./storage');
+const EditionRules=require('./edition-rules');
 const fail=(status,message)=>Object.assign(new Error(message),{status});
 const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
 const cardKey=card=>card._minecards?.cardId&&Number(card.id)<0?'mc:'+card._minecards.cardId:'local:'+card.id;
@@ -41,8 +42,8 @@ function createWorkspace({readDb,writeDb,readBody,sendJson,getUserFromRequest,pu
         return target;
     }
     function userSummary(item){
-        const counts=collectionStats(collectionData(item).cards),remote=minecards.status(item.id);
-        return {id:item.id,username:item.username,displayName:item.profile?.displayName||item.username,role:item.role||'user',suspended:!!item.suspended,suspensionReason:item.suspensionReason||'',createdAt:item.createdAt,lastLoginAt:item.lastLoginAt||null,cardCount:counts.unique,copyCount:counts.copies,duplicateCount:counts.duplicates,favoriteDeckCount:item.data?.favoriteDecks?.length||0,sessionCount:aliveSessions(item.id).length,connected:remote.configured,lastSync:remote.lastSync,syncJob:remote.job?{running:remote.job.running,phase:remote.job.phase,error:remote.job.error||null,pages:remote.job.pages||0}:null};
+        const collection=collectionData(item).cards,counts=collectionStats(collection),remote=minecards.status(item.id),editions=EditionRules.summary(collection);
+        return {id:item.id,username:item.username,displayName:item.profile?.displayName||item.username,role:item.role||'user',suspended:!!item.suspended,suspensionReason:item.suspensionReason||'',createdAt:item.createdAt,lastLoginAt:item.lastLoginAt||null,cardCount:counts.unique,copyCount:counts.copies,duplicateCount:counts.duplicates,editions,favoriteDeckCount:item.data?.favoriteDecks?.length||0,sessionCount:aliveSessions(item.id).length,connected:remote.configured,lastSync:remote.lastSync,syncJob:remote.job?{running:remote.job.running,phase:remote.job.phase,error:remote.job.error||null,pages:remote.job.pages||0}:null};
     }
     async function handle(req,res,url,user){
         if(url.pathname==='/api/site'&&req.method==='GET'){
@@ -85,7 +86,8 @@ function createWorkspace({readDb,writeDb,readBody,sendJson,getUserFromRequest,pu
         if(user.role!=='admin')throw fail(403,'Accès réservé à l’administration.');
         if(url.pathname==='/api/admin/overview'&&req.method==='GET'){
             const db=readDb(),users=db.users.map(userSummary);
-            sendJson(res,200,{users,stats:{profiles:users.length,members:users.filter(item=>item.role!=='admin').length,administrators:users.filter(item=>item.role==='admin').length,suspended:users.filter(item=>item.suspended).length,uniqueCards:users.reduce((sum,item)=>sum+item.cardCount,0),copies:users.reduce((sum,item)=>sum+item.copyCount,0),duplicates:users.reduce((sum,item)=>sum+item.duplicateCount,0),decks:users.reduce((sum,item)=>sum+item.favoriteDeckCount,0),sessions:users.reduce((sum,item)=>sum+item.sessionCount,0),connected:users.filter(item=>item.connected).length,syncing:users.filter(item=>item.syncJob?.running).length},storage:storage.isCloud?'Upstash Redis':'Fichiers locaux',settings:{message:db.settings?.message||'',tone:db.settings?.tone||'info',registrationsOpen:db.settings?.registrationsOpen!==false},generatedAt:new Date().toISOString()});return true;
+            const editions=users.reduce((sum,item)=>{for(const key of Object.keys(item.editions))sum[key]=(sum[key]||0)+item.editions[key];return sum;},{});
+            sendJson(res,200,{users,editions,stats:{profiles:users.length,members:users.filter(item=>item.role!=='admin').length,administrators:users.filter(item=>item.role==='admin').length,suspended:users.filter(item=>item.suspended).length,uniqueCards:users.reduce((sum,item)=>sum+item.cardCount,0),copies:users.reduce((sum,item)=>sum+item.copyCount,0),duplicates:users.reduce((sum,item)=>sum+item.duplicateCount,0),decks:users.reduce((sum,item)=>sum+item.favoriteDeckCount,0),sessions:users.reduce((sum,item)=>sum+item.sessionCount,0),connected:users.filter(item=>item.connected).length,syncing:users.filter(item=>item.syncJob?.running).length},storage:storage.isCloud?'Upstash Redis':'Fichiers locaux',settings:{message:db.settings?.message||'',tone:db.settings?.tone||'info',registrationsOpen:db.settings?.registrationsOpen!==false},generatedAt:new Date().toISOString()});return true;
         }
         if(url.pathname==='/api/admin/audit'&&req.method==='GET'){sendJson(res,200,{entries:readDb().auditLog||[]});return true;}
         if(url.pathname==='/api/admin/settings'&&req.method==='PATCH'){

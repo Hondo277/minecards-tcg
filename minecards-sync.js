@@ -3,6 +3,7 @@ const crypto=require('crypto');
 const storage=require('./storage');
 const {fetchRemote}=require('./minecards-remote');
 const lifetime=15*60*1000;
+const jobProtocol=3;
 const fingerprint=key=>crypto.createHash('sha256').update(key).digest('hex');
 const fail=(status,message)=>Object.assign(new Error(message),{status});
 
@@ -15,7 +16,7 @@ function createSyncEngine({readDb,readConnections,readBody,sendJson,getUserFromR
     }
     function publicJob(job){
         if(!job)return null;
-        if(job.running&&(job.protocol!==2||Date.now()-Date.parse(job.startedAt)>lifetime))return {running:false,phase:'error',pages:job.pages||0,error:'Synchronisation interrompue. Relance-la pour lire un inventaire complet.'};
+        if(job.running&&(job.protocol!==jobProtocol||Date.now()-Date.parse(job.startedAt)>lifetime))return {running:false,phase:'error',pages:job.pages||0,error:'Synchronisation interrompue. Relance-la pour lire un inventaire complet avec les finitions.'};
         const result={};
         for(const name of ['id','running','phase','pages','received','nextPage','startedAt','updatedAt','completedAt','durationMs','retryAt','error'])if(job[name]!==undefined)result[name]=job[name];
         result.nextPollMs=job.lease&&job.leaseUntil>Date.now()?350:job.retryAt?Math.max(0,Date.parse(job.retryAt)-Date.now()):0;
@@ -24,9 +25,9 @@ function createSyncEngine({readDb,readConnections,readBody,sendJson,getUserFromR
     function start(userId){
         const connection=readConnections()[userId];if(!connection)throw fail(400,'Connecte d’abord une clé MineCards.');
         const previous=jobs.get(userId);
-        if(previous?.running&&previous.protocol===2&&Date.now()-Date.parse(previous.startedAt)<lifetime&&previous.fingerprint===fingerprint(connection.key))return;
+        if(previous?.running&&previous.protocol===jobProtocol&&Date.now()-Date.parse(previous.startedAt)<lifetime&&previous.fingerprint===fingerprint(connection.key))return;
         const now=new Date().toISOString();
-        jobs.set(userId,{protocol:2,id:crypto.randomUUID(),running:true,phase:'ready',pages:0,received:0,nextPage:1,items:[],fingerprint:fingerprint(connection.key),startedAt:now,updatedAt:now,error:null,retries:0});
+        jobs.set(userId,{protocol:jobProtocol,id:crypto.randomUUID(),running:true,phase:'ready',pages:0,received:0,nextPage:1,items:[],fingerprint:fingerprint(connection.key),startedAt:now,updatedAt:now,error:null,retries:0});
     }
     function response(userId,includeData=false){
         const state=status(userId);
@@ -37,6 +38,7 @@ function createSyncEngine({readDb,readConnections,readBody,sendJson,getUserFromR
         const user=getUserFromRequest(req,readDb());if(!user)throw fail(401,'Connexion requise.');
         const job=jobs.get(user.id),current=response(user.id);
         if(!job||job.id!==input.jobId||!job.running||job.nextPage!==input.page)return {state:current};
+        if(job.protocol!==jobProtocol){terminate(job,'Relance la synchronisation pour importer les finitions standard et holographiques.');jobs.set(user.id,job);return {state:response(user.id)};}
         if(Date.now()-Date.parse(job.startedAt)>lifetime){terminate(job,'La synchronisation a expiré. Relance-la pour lire un inventaire complet.');jobs.set(user.id,job);return {state:response(user.id)};}
         const connection=readConnections()[user.id];
         if(!connection||fingerprint(connection.key)!==job.fingerprint){terminate(job,'La connexion a changé. Relance la synchronisation.');jobs.set(user.id,job);return {state:response(user.id)};}
@@ -70,9 +72,10 @@ function createSyncEngine({readDb,readConnections,readBody,sendJson,getUserFromR
             for(const item of payload.data){
                 const card=item?.card;
                 if(!card||typeof item.cardId!=='string'||!item.cardId||card.id!==item.cardId||!Number.isSafeInteger(item.quantity)||item.quantity<0||!Number.isSafeInteger(card.power)||seen.has(item.cardId))throw fail(502,'Inventaire MineCards incohérent. La collection précédente est conservée.');
+                if(!Number.isSafeInteger(item.standardQuantity)||item.standardQuantity<0||!Number.isSafeInteger(item.holographicQuantity)||item.holographicQuantity<0||item.standardQuantity+item.holographicQuantity!==item.quantity||typeof card.isSecret!=='boolean'||(card.isSecret||card.rarity==='MYTHIQUE')&&item.standardQuantity!==0)throw fail(502,'Répartition standard / holographique incohérente. La collection précédente est conservée.');
                 seen.add(item.cardId);
-                const compact={};for(const field of ['id','name','nameEn','image','rarity','category','dimension','attack','defense','power','active'])compact[field]=card[field];
-                items.push({cardId:item.cardId,quantity:item.quantity,card:compact});
+                const compact={};for(const field of ['id','name','nameEn','image','rarity','category','dimension','attack','defense','power','active','isSecret'])compact[field]=card[field];
+                items.push({cardId:item.cardId,quantity:item.quantity,standardQuantity:item.standardQuantity,holographicQuantity:item.holographicQuantity,card:compact});
             }
             const pagination=payload.pagination;
             if(pagination.hasMore&&pagination.nextPage===null)throw fail(502,'La limite de pagination empêche un import complet. La collection précédente est conservée.');

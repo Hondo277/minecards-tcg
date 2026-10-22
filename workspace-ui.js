@@ -3,10 +3,11 @@ let notebookEntries={},workspaceGeneration=0,workspaceFilteredCards=[],workspace
 const comparedDecks=new Set();
 const workspaceNormalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const workspaceCardKey=card=>card._minecards?.cardId&&Number(card.id)<0?'mc:'+card._minecards.cardId:'local:'+card.id;
-const workspaceFilterIds=['search-input','rarity-filter','sort-select','collection-source','collection-category','collection-dimension','collection-quantity','collection-min','collection-max','collection-pinned'];
+const workspaceFilterIds=['search-input','rarity-filter','sort-select','collection-source','collection-category','collection-dimension','collection-quantity','collection-finish','collection-min','collection-max','collection-pinned'];
 const wn=id=>document.getElementById(id);
 function workspaceToast(message,error=false){const node=wn('workspace-feedback');node.textContent=message;node.classList.toggle('is-error',error);}
 function workspaceReset(){
+    recyclerReset();
     clearInterval(workspaceSiteTimer);workspaceSiteTimer=null;
     workspaceGeneration++;notebookEntries={};workspaceFilteredCards=[];comparedDecks.clear();workspaceNotebookQueue=Promise.resolve();workspaceDeckQueue=Promise.resolve();
     workspaceCollectionSignature=null;
@@ -54,15 +55,17 @@ function workspacePopulateFilters(){
 }
 function workspaceFilterState(){
     workspacePopulateFilters();workspaceRemember();
-    return {source:wn('collection-source').value,category:wn('collection-category').value,dimension:wn('collection-dimension').value,quantity:wn('collection-quantity').value,min:wn('collection-min').value===''?null:Number(wn('collection-min').value),max:wn('collection-max').value===''?null:Number(wn('collection-max').value),pinned:wn('collection-pinned').checked};
+    return {source:wn('collection-source').value,category:wn('collection-category').value,dimension:wn('collection-dimension').value,quantity:wn('collection-quantity').value,finish:wn('collection-finish').value,min:wn('collection-min').value===''?null:Number(wn('collection-min').value),max:wn('collection-max').value===''?null:Number(wn('collection-max').value),pinned:wn('collection-pinned').checked};
 }
 function workspaceUpdateDerived(){
     const signature=JSON.stringify(cards);if(signature===workspaceCollectionSignature)return;
-    workspaceCollectionSignature=signature;updateStats();updateBuilderState();arenaRefreshCollection();
+    workspaceCollectionSignature=signature;updateStats();updateBuilderState();arenaRefreshCollection();updateEditionStats();
 }
 function workspaceMatch(card,state){
     const remote=card._minecards,quantity=workspaceQuantities.get(deckIdentity(card))||1,power=deckPower(card);
-    return (state.source==='all'||(state.source==='minecards'?!!remote:!remote))&&(state.category==='all'||remote?.category===state.category)&&(state.dimension==='all'||remote?.dimension===state.dimension)&&(state.quantity==='all'||(state.quantity==='duplicates'?quantity>1:quantity===1))&&(state.min===null||power!==null&&power>=state.min)&&(state.max===null||power!==null&&power<=state.max)&&(!state.pinned||notebookEntries[workspaceCardKey(card)]?.favorite===true);
+    const finish=EditionRules.finishes(card);
+    const matchesFinish=state.finish==='all'||state.finish==='holographic'&&finish.holographic>0||state.finish==='standard'&&finish.standard>0||state.finish==='holo-only'&&finish.known&&finish.standard===0&&finish.holographic>0||state.finish==='recyclable'&&finish.recyclable>0&&EditionRules.points(card)!==null||state.finish==='unknown'&&!!remote&&!finish.known;
+    return matchesFinish&&(state.source==='all'||(state.source==='minecards'?!!remote:!remote))&&(state.category==='all'||remote?.category===state.category)&&(state.dimension==='all'||remote?.dimension===state.dimension)&&(state.quantity==='all'||(state.quantity==='duplicates'?quantity>1:quantity===1))&&(state.min===null||power!==null&&power>=state.min)&&(state.max===null||power!==null&&power<=state.max)&&(!state.pinned||notebookEntries[workspaceCardKey(card)]?.favorite===true);
 }
 function workspaceSearchMatch(card,query){return workspaceNormalize([card.nom,card._minecards?.nameEn,card._minecards?.category,card._minecards?.dimension,notebookEntries[workspaceCardKey(card)]?.note].join(' ')).includes(workspaceNormalize(query));}
 function workspaceClearFilters(render=true){
@@ -79,7 +82,7 @@ function workspaceDownload(name,content,type='application/json'){
 function workspaceExportCollection(format='csv'){
     const list=[...new Map(workspaceFilteredCards.map(card=>[deckIdentity(card),card])).values()];
     if(!list.length){workspaceToast('Aucune carte à exporter avec ces filtres.',true);return;}
-    const rows=list.map(card=>({id:workspaceCardKey(card),nom:card.nom,rarete:card.rarete,puissance:deckPower(card),attaque:card.attaque,defense:card.defense,exemplaires:workspaceQuantities.get(deckIdentity(card))||1,doublons:Math.max(0,(workspaceQuantities.get(deckIdentity(card))||1)-1),categorie:card._minecards?.category||'',dimension:card._minecards?.dimension||'',source:card._minecards?'MineCards':'Locale',note:notebookEntries[workspaceCardKey(card)]?.note||''}));
+    const rows=list.map(card=>({id:workspaceCardKey(card),nom:card.nom,rarete:card.rarete,puissance:deckPower(card),attaque:card.attaque,defense:card.defense,exemplaires:workspaceQuantities.get(deckIdentity(card))||1,doublons:Math.max(0,(workspaceQuantities.get(deckIdentity(card))||1)-1),standard:EditionRules.finishes(card).standard,holographique:EditionRules.finishes(card).holographic,recyclable:EditionRules.finishes(card).known?EditionRules.finishes(card).recyclable:null,secrete:EditionRules.secret(card),categorie:card._minecards?.category||'',dimension:card._minecards?.dimension||'',source:card._minecards?'MineCards':'Locale',note:notebookEntries[workspaceCardKey(card)]?.note||''}));
     const name='collection-'+activeProfile.username+'-'+new Date().toISOString().slice(0,10);
     if(format==='json')workspaceDownload(name+'.json',JSON.stringify({exportedAt:new Date().toISOString(),cards:rows},null,2));
     else workspaceDownload(name+'.csv',workspaceCsv([Object.keys(rows[0]),...rows.map(Object.values)]),'text/csv;charset=utf-8');
@@ -99,7 +102,7 @@ function workspaceNotebookSave(key,favorite,note,button){
         if(generation!==workspaceGeneration)return;
         const result=await apiRequest('/api/notebook',{method:'PATCH',body:JSON.stringify({key,favorite,note})});
         if(generation!==workspaceGeneration)return;
-        notebookEntries=result.entries;filterAndRenderCards();workspaceToast('Carnet enregistré.');
+        notebookEntries=result.entries;filterAndRenderCards();recyclerRender();workspaceToast('Carnet enregistré.');
     });
     workspaceNotebookQueue=saving.catch(error=>{if(generation===workspaceGeneration)workspaceToast(error.message,true);});
     return saving.finally(()=>{if(button)button.disabled=false;});
@@ -114,7 +117,7 @@ function workspaceOpenCard(key){
     const used=favoriteDecks.filter(deck=>[...(deck.cards||[]),...(deck.supports||[])].some(item=>deckIdentity(item)===deckIdentity(card)));
     const dialog=wn('workspace-card-dialog');dialog.dataset.cardKey=key;
     wn('workspace-card-title').textContent=card.nom;
-    wn('workspace-card-content').innerHTML=`<div class="card-detail-art">${profileCardArt(card)}</div><div><span class="eyebrow">${escapeHtml(card.rarete)} · ${remote?'MINECARDS':'CARTE LOCALE'}</span><dl class="workspace-detail-stats">${[['Puissance',deckPower(card)],['Exemplaires',quantity],['Doublons hors original',Math.max(0,quantity-1)],['Attaque enregistrée',card.attaque],['Défense enregistrée',card.defense],['Catégorie',remote?.category||'—'],['Dimension',remote?.dimension||'—'],['Attaque officielle',remote?.attack??'—'],['Défense officielle',remote?.defense??'—']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeHtml(value??'—')}</dd></div>`).join('')}</dl><h4>Présente dans ${used.length} deck(s) favori(s)</h4><p>${used.length?used.map(deck=>escapeHtml(deck.name)).join(' · '):'Cette carte attend sa prochaine équipe.'}</p></div>`;
+    wn('workspace-card-content').innerHTML=`<div class="card-detail-art">${profileCardArt(card)}</div><div><span class="eyebrow">${escapeHtml(card.rarete)} · ${remote?'MINECARDS':'CARTE LOCALE'}</span><dl class="workspace-detail-stats">${[['Puissance',deckPower(card)],['Exemplaires',quantity],['Doublons hors original',Math.max(0,quantity-1)],['Standard disponibles',EditionRules.finishes(card).standard??'À actualiser'],['Holographiques disponibles',EditionRules.finishes(card).holographic??'À actualiser'],['Doublons standard recyclables',EditionRules.finishes(card).known?EditionRules.finishes(card).recyclable:'À actualiser'],['Points par standard recyclé',EditionRules.points(card)??'Non recyclable'],['Attaque enregistrée',card.attaque],['Défense enregistrée',card.defense],['Catégorie',remote?.category||'—'],['Dimension',remote?.dimension||'—'],['Attaque officielle',remote?.attack??'—'],['Défense officielle',remote?.defense??'—']].map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeHtml(value??'—')}</dd></div>`).join('')}</dl><h4>Présente dans ${used.length} deck(s) favori(s)</h4><p>${used.length?used.map(deck=>escapeHtml(deck.name)).join(' · '):'Cette carte attend sa prochaine équipe.'}</p></div>`;
     wn('workspace-card-note').value=entry.note||'';wn('workspace-card-pin').checked=!!entry.favorite;wn('workspace-card-note-message').textContent='';dialog.showModal();
 }
 async function workspaceSaveCardNote(event){
@@ -127,6 +130,7 @@ function workspaceDeckSelection(){
 }
 function renderFavoriteDecks(){
     renderProfileShowcase();
+    recyclerRender();
     for(const id of [...comparedDecks])if(!favoriteDecks.some(deck=>String(deck.id)===id))comparedDecks.delete(id);
     const list=workspaceDeckSelection();wn('no-favorites-state').classList.toggle('hidden',favoriteDecks.length>0);wn('deck-no-results').hidden=list.length>0||!favoriteDecks.length;
     wn('deck-visible-count').textContent=list.length+' / '+favoriteDecks.length+' deck(s)';
@@ -134,7 +138,7 @@ function renderFavoriteDecks(){
     const owned=new Set(distinctDeckCards(cards).map(deckIdentity));
     wn('favorite-decks-grid').innerHTML=list.map(deck=>{
         const arena=deck.mode==='arena',id=String(deck.id),missing=[...(deck.cards||[]),...(deck.supports||[])].filter(card=>!owned.has(deckIdentity(card))).length;
-        return `<article class="saved-deck"><div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-solid ${arena?'fa-shield-halved':'fa-star'}" aria-hidden="true"></i></span><div><span class="eyebrow">${arena?'ÉQUIPE TACTIQUE':'TRIO FAVORI'}</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>puissance</small></div></div><ol class="saved-deck-cards">${(deck.cards||[]).map((card,index)=>`<li><span class="saved-card-index">0${index+1}</span><span><strong>${escapeHtml(card.nom)}</strong><small>${escapeHtml(card.rarete)}</small></span><b>${escapeHtml(card.valeur)}<small>pts</small></b></li>`).join('')}</ol>${arena?`<div class="saved-arena-info"><span>${escapeHtml(ArenaRules.environments[deck.arenaId]?.name||'Arène')}</span><span>${escapeHtml(ArenaRules.stances[deck.tactic]?.name||'Posture')}</span><span>${escapeHtml(deck.teamCost??'—')} / 18 points</span></div><p class="deck-support-note">Soutiens : ${(deck.supports||[]).length?deck.supports.map(card=>escapeHtml(card.nom)).join(' · '):'aucun'}</p>`:''}<p class="deck-availability ${missing?'is-error':''}">${missing?missing+' carte(s) absente(s) de la collection actuelle':'Toutes les cartes sont disponibles'}</p><div class="workspace-actions">${[['open','Ouvrir'],['rename','Renommer'],['copy','Dupliquer'],['export','Exporter']].map(([action,label])=>`<button type="button" class="secondary-button" data-workspace-action="deck-${action}" data-deck-id="${escapeHtml(id)}">${label}</button>`).join('')}</div><div class="saved-deck-footer"><label><input type="checkbox" data-workspace-action="deck-select" data-deck-id="${escapeHtml(id)}" ${comparedDecks.has(id)?'checked':''}> Comparer</label><button type="button" data-workspace-action="deck-delete" data-deck-id="${escapeHtml(id)}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Supprimer</button></div><small class="deck-date">Enregistré le ${escapeHtml(deck.createdAt||'—')}</small></article>`;
+        return `<article class="saved-deck"><div class="saved-deck-heading"><span class="saved-deck-icon"><i class="fa-solid ${arena?'fa-shield-halved':'fa-star'}" aria-hidden="true"></i></span><div><span class="eyebrow">${arena?'ÉQUIPE TACTIQUE':'TRIO FAVORI'}</span><h3>${escapeHtml(deck.name)}</h3></div><div class="saved-deck-power">${escapeHtml(deck.totalPower)}<small>puissance</small></div></div><ol class="saved-deck-cards">${(deck.cards||[]).map((card,index)=>`<li><span class="saved-card-index">0${index+1}</span><span><strong>${escapeHtml(card.nom)}</strong><small>${escapeHtml(card.rarete)}${EditionRules.hasHolo(card)?' · holo disponible':''}</small></span><b>${escapeHtml(card.valeur)}<small>pts</small></b></li>`).join('')}</ol>${arena?`<div class="saved-arena-info"><span>${escapeHtml(ArenaRules.environments[deck.arenaId]?.name||'Arène')}</span><span>${escapeHtml(ArenaRules.stances[deck.tactic]?.name||'Posture')}</span><span>${escapeHtml(deck.teamCost??'—')} / 18 points</span></div><p class="deck-support-note">Soutiens : ${(deck.supports||[]).length?deck.supports.map(card=>escapeHtml(card.nom)).join(' · '):'aucun'}</p>`:''}<p class="deck-availability ${missing?'is-error':''}">${missing?missing+' carte(s) absente(s) de la collection actuelle':'Toutes les cartes sont disponibles'}</p><div class="workspace-actions">${[['open','Ouvrir'],['rename','Renommer'],['copy','Dupliquer'],['export','Exporter']].map(([action,label])=>`<button type="button" class="secondary-button" data-workspace-action="deck-${action}" data-deck-id="${escapeHtml(id)}">${label}</button>`).join('')}</div><div class="saved-deck-footer"><label><input type="checkbox" data-workspace-action="deck-select" data-deck-id="${escapeHtml(id)}" ${comparedDecks.has(id)?'checked':''}> Comparer</label><button type="button" data-workspace-action="deck-delete" data-deck-id="${escapeHtml(id)}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Supprimer</button></div><small class="deck-date">Enregistré le ${escapeHtml(deck.createdAt||'—')}</small></article>`;
     }).join('');
 }
 function workspaceDeckEdit(change){

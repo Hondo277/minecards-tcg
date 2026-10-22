@@ -59,3 +59,7 @@ L’API v1.1.0 publie les champions et une défense avec ses statistiques enregi
 Le préparateur conserve les appels distants en lecture seule. Pour jouer ou installer une défense, la composition peut être copiée puis reproduite dans MineCards. Aucune session navigateur ni donnée personnelle du compte source n’est intégrée au code publié.
 
 Ces règles peuvent évoluer sans changement de version de l’API : réexaminer la page des arènes avant de mettre à jour le module.
+
+## Finitions et rareté Mythique
+
+La finition holographique est cosmétique : elle ne modifie ni la puissance, ni l'attaque, ni la défense, et ne permet pas d'utiliser deux fois la même carte de base. Les cartes Mythiques sont prises en charge dans la collection et les trios de puissance. Leur coût tactique n'étant pas documenté par l'API en lecture seule consultée le 22 octobre 2026, aucun coût n'est inventé pour le préparateur d'arène : les raretés sans coût validé restent exclues de ses recommandations.

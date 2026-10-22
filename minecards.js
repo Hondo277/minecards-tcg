@@ -3,13 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const storage = require('./storage');
 const ArenaRules = require('./arena-rules');
+const EditionRules = require('./edition-rules');
 const {fetchRemote}=require('./minecards-remote');
 const {createSyncEngine}=require('./minecards-sync');
 const API_VERSION = '1.1.0';
 const KEY_FILE = path.join(__dirname, 'data', 'minecards-connections.json');
-const ROUTES = { cards:['q','rarity','category','dimension'], collection:['q','rarity','category','dimension'], boosters:[], profiles:['q'], arenas:[], auctions:['status'], leaderboard:[] };
+const ROUTES = { cards:['q','rarity','category','dimension'], collection:['q','rarity','category','dimension'], boosters:[], profiles:['q'], arenas:[], auctions:['status','rarity'], leaderboard:[] };
 const REMOTE = {collection:'me/cards',boosters:'me/boosters'};
-const RARITIES = { CHARBON:'Charbon', CUIVRE:'Cuivre', FER:'Fer', OR:'Or', DIAMANT:'Diamant', NETHERITE:'Netherite' };
+const RARITIES = { CHARBON:'Charbon', CUIVRE:'Cuivre', FER:'Fer', OR:'Or', DIAMANT:'Diamant', NETHERITE:'Netherite', MYTHIQUE:'Mythique' };
 const fail = (status, message) => Object.assign(new Error(message), {status});
 function readConnections() { if(storage.isCloud)return structuredClone(storage.currentState().connections); return fs.existsSync(KEY_FILE) ? JSON.parse(fs.readFileSync(KEY_FILE,'utf8')) : {}; }
 function writeConnections(value) { if(storage.isCloud){storage.currentState().connections=structuredClone(value);return;} fs.writeFileSync(KEY_FILE+'.tmp',JSON.stringify(value,null,2),{mode:0o600});fs.renameSync(KEY_FILE+'.tmp',KEY_FILE); }
@@ -47,6 +48,7 @@ function updateCardPowers(user,catalog) {
         if(!source||!Number.isSafeInteger(source.power)){missing++;return;}
         if(card.valeur!==source.power){card.valeur=source.power;updated++;}
         if(card._minecards)Object.assign(card._minecards,{power:source.power,category:source.category,dimension:source.dimension,attack:source.attack,defense:source.defense,active:source.active,rarity:source.rarity,nameEn:source.nameEn});
+        if(card._minecards)for(const field of ['quantity','standardQuantity','holographicQuantity','isSecret'])if(source[field]!==undefined)card._minecards[field]=source[field];
     };
     for(const card of user.data?.cards||[])refresh(card);
     for(const card of user.minecards?.cards||[])refresh(card);
@@ -107,7 +109,7 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
     function status(userId) {
         const user=readDb().users.find(u=>u.id===userId);
         const connection=readConnections()[userId];
-        return {configured:!!connection,apiVersion:API_VERSION,lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),dataRevision:user?.dataRevision||0,job:syncEngine.publicJob(jobs.get(userId)),readOnly:true,syncProtocol:2,autoSyncMs:30000};
+        return {configured:!!connection,apiVersion:API_VERSION,lastSync:user?.minecards?.syncedAt||null,uniqueCards:user?.minecards?.cards?.length||0,totalCards:(user?.minecards?.cards||[]).reduce((sum,c)=>sum+c._minecards.quantity,0),editions:EditionRules.summary(user?.minecards?.cards||[]),dataRevision:user?.dataRevision||0,job:syncEngine.publicJob(jobs.get(userId)),readOnly:true,syncProtocol:2,autoSyncMs:30000};
     }
     function saveSyncedCollection(userId,items,startedAt,pages){
         const db=readDb(),user=db.users.find(u=>u.id===userId);
@@ -119,11 +121,12 @@ function createMinecards({readDb,writeDb,readBody,sendJson,getUserFromRequest}) 
             const c=item.card,attack=Number(c.attack)||0,defense=Number(c.defense)||0;
             const prior=previousCards.get(item.cardId);
             if(!Number.isSafeInteger(c.power))throw fail(502,'La puissance officielle manque dans une carte MineCards. La synchronisation est annulée pour conserver les valeurs précédentes.');
-            return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity,power:c.power,category:c.category,dimension:c.dimension,attack:c.attack,defense:c.defense,active:c.active,rarity:c.rarity,nameEn:c.nameEn}};
+            return {id:previous.get(item.cardId)??nextId--,nom:String(c.name||item.cardId),rarete:RARITIES[c.rarity]||'Non classée',attaque:prior?.attaque??attack,defense:prior?.defense??defense,valeur:c.power,image:typeof c.image==='string'&&c.image?c.image:(prior?.image||''),_minecards:{cardId:item.cardId,quantity:item.quantity,standardQuantity:item.standardQuantity,holographicQuantity:item.holographicQuantity,isSecret:c.isSecret,power:c.power,category:c.category,dimension:c.dimension,attack:c.attack,defense:c.defense,active:c.active,rarity:c.rarity,nameEn:c.nameEn}};
         });
         user.minecards={cards:imported,syncedAt:new Date().toISOString(),lastDurationMs:Date.now()-Date.parse(startedAt),lastPages:pages};
-        updateCardImages(user,items.map(item=>item.card));
-        updateCardPowers(user,items.map(item=>item.card));
+        const catalog=items.map(item=>({...item.card,quantity:item.quantity,standardQuantity:item.standardQuantity,holographicQuantity:item.holographicQuantity}));
+        updateCardImages(user,catalog);
+        updateCardPowers(user,catalog);
         writeDb(db);
     }
     const syncEngine=createSyncEngine({readDb,readConnections,readBody,sendJson,getUserFromRequest,jobs,reserveRequest,applyQuota,saveCollection:saveSyncedCollection,status,collectionData});

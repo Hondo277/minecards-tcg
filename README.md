@@ -27,6 +27,18 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Fiche détaillée de chaque carte, statistiques officielles et enregistrées, exemplaires / doublons et liste des decks qui l'utilisent.
 - Carnet privé : cartes favorites et notes de 600 caractères, conservées séparément de la collection synchronisée.
 - Exports CSV et JSON de la sélection filtrée, avec quantités et doublons hors original.
+- Répartition standard / holographique, effets visuels holographiques, filtres de finition et cartes secrètes de rareté Mythique.
+- Une seule ligne par carte de base, même avec les deux finitions. Aucun bonus de statistiques n'est lié à la finition ; les decks gardent trois cartes de base différentes.
+
+### Recycleur
+
+- Préparateur des doublons **standard disponibles**, avec conservation d'un original standard par carte et de toutes les holographiques.
+- Barème officiel : Charbon **1**, Cuivre **2**, Fer **5**, Or **10**, Diamant **25**, Netherite **50** points ; **50 points = un booster classique de 5 cartes**.
+- Recherche, rareté, tri, quantités, plans de 100 cartes différentes maximum, protections facultatives des cartes favorites et des cartes utilisées dans les decks.
+- Préparation du prochain seuil de 50 points avec les raretés basses en premier, export CSV et copie du plan.
+- Simulation facultative avec un solde saisi manuellement : le potentiel de points est distinct du solde réellement détenu.
+- L'API reste en lecture seule : aucun recyclage, échange de points ou ouverture de booster n'est effectué ici. Le bouton ouvre le [recycleur officiel](https://minecards.vercel.app/recycleur) pour réaliser ces opérations.
+- Les cartes locales, les cartes Mythiques et les copies sans détail des finitions sont exclues. Synchroniser après la mise à jour pour lire les nouvelles quantités.
 
 ### Créateur de decks
 
@@ -177,6 +189,8 @@ storage.js                    Stockage et transactions Redis
 minecards.js                  Passerelle privée et synchronisation
 minecards-remote.js           Lectures MineCards et validation du protocole distant
 minecards-sync.js             Import par étapes, reprise et validation atomique
+edition-rules.js              Finitions et règles de recyclage partagées
+recycler-ui.js                Plans de recyclage et projections de boosters
 minecards-ui.js               Connexion et explorateur MineCards
 workspace-service.js          Carnet, sessions, exports, statistiques et actions admin
 workspace-ui.js               Fiches, filtres, carnet et bibliothèque de decks

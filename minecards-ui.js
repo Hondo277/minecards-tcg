@@ -2,9 +2,10 @@
 let mcPage=1,mcNextPage=null,mcHasMore=false,mcConfigured=false,mcBusy=false,mcTimer=null,mcGeneration=0,mcExploreSequence=0,mcLastSync=null;
 let mcSyncPromise=null,mcController=null,mcCurrentStatus=null,mcNextAutoAt=0;
 const mcAutoInterval=30000;
-const mcFilters={cards:['q','rarity','category','dimension','limit'],collection:['q','rarity','category','dimension','limit'],boosters:[],profiles:['q','limit'],arenas:['limit'],auctions:['status','limit'],leaderboard:['limit']};
+const mcFilters={cards:['q','rarity','category','dimension','limit'],collection:['q','rarity','category','dimension','limit'],boosters:[],profiles:['q','limit'],arenas:['limit'],auctions:['status','rarity','limit'],leaderboard:['limit']};
 const mcLabels={id:'Identifiant',cardId:'Carte',name:'Nom',nameEn:'Nom anglais',description:'Description',descriptionEn:'Description anglaise',category:'Catégorie',dimension:'Dimension',minecraftVersion:'Version Minecraft',rarity:'Rareté',attack:'Attaque',defense:'Défense',active:'Disponible dans les boosters',quantity:'Exemplaires disponibles',username:'Joueur',bio:'Présentation',premium:'MineCards+',showCollection:'Collection publique',showActivity:'Activité publique',createdAt:'Création',score:'Score',rank:'Rang',available:'Boosters disponibles',capacity:'Capacité',intervalSeconds:'Intervalle (secondes)',accruedAt:'Dernière acquisition',giftedStandard:'Dons classiques',giftedPremium:'Dons premium',nextAt:'Prochain booster',premiumAvailable:'Boosters premium disponibles',premiumNextAt:'Prochain premium',premiumIntervalSeconds:'Intervalle premium (secondes)',dailyPremiumAvailable:'Premium disponible (compatibilité)',serverTime:'Heure du serveur',badge:'Badge',champion:'Champion',startingPrice:'Prix de départ',currentBid:'Offre actuelle',status:'Statut enregistré',effectiveStatus:'Statut effectif',hasEnded:'Terminée',settled:'Règlement effectué',endsAt:'Fin',settledAt:'Date du règlement',seller:'Vendeur',highestBidder:'Meilleur enchérisseur',bidCount:'Nombre d’offres',showcaseCards:'Cartes exposées',showcaseBadges:'Badges exposés',collection:'Collection publique',activity:'Activité',avatarId:'Avatar',bannerId:'Bannière'};
 mcLabels.power='Puissance officielle';
+Object.assign(mcLabels,{standardQuantity:'Exemplaires standard disponibles',holographicQuantity:'Exemplaires holographiques disponibles',finish:'Finition',isSecret:'Carte secrète',specialAvailable:'Booster Éclipse disponible',specialNextAt:'Prochain booster Éclipse',specialIntervalSeconds:'Délai Éclipse (secondes)',giftedStandard:'Boosters classiques bonus (dons, récompenses, recycleur)'});
 function mcMessage(message,success=false){const el=document.getElementById('mc-explorer-message');el.textContent=message;el.classList.toggle('success',success);}
 function mcErrorMessage(error){return error.message+(error.retryAfter?' Réessaie dans '+error.retryAfter+' secondes.':'');}
 function mcAutoEnabled(){try{return localStorage.getItem('mc-auto-'+activeProfile?.id)!=='false';}catch{return true;}}
@@ -32,6 +33,7 @@ function mcApplyStatus(state){
     button.innerHTML='<i class="fa-solid fa-arrows-rotate'+(mcBusy?' fa-spin':'')+'" aria-hidden="true"></i> '+(mcBusy?'Synchronisation…':job?.running?'Reprendre la synchronisation':'Synchroniser maintenant');
     let text=mcConfigured?'Connexion active · API '+(state.apiVersion||'1.1.0')+'. ':'Aucune clé reliée à ce profil. ';
     if(state.lastSync)text+=state.uniqueCards+' cartes différentes · '+state.totalCards+' exemplaires disponibles · dernière copie le '+new Date(state.lastSync).toLocaleString('fr-FR')+'.';
+    if(state.editions?.unknownCards)text+=' Finitions à actualiser pour '+state.editions.unknownCards+' carte(s).';
     if(state.job?.running)text+=' Synchronisation en cours : '+state.job.pages+' page(s) lue(s).';
     if(state.job?.error)text+=' Dernier essai : '+state.job.error;
     if(state.job?.retryAt&&Date.parse(state.job.retryAt)>Date.now())text+=' Nouvel essai possible à '+new Date(state.job.retryAt).toLocaleTimeString('fr-FR')+'.';
@@ -151,6 +153,7 @@ function mcResourceChanged(load=true){
     if(load)void mcExplore();
 }
 function mcValue(value){
+    if(value==='HOLOGRAPHIC')return 'Holographique';if(value==='STANDARD')return 'Standard';
     if(value===null||value===undefined)return 'Non disponible';
     if(typeof value==='boolean')return value?'Oui':'Non';
     if(Array.isArray(value))return value.length?value.map(item=>typeof item==='object'?((item?.name||item?.card?.name||item?.username||JSON.stringify(item))+(Number.isSafeInteger(item?.power)?' ('+item.power+' pts)':'')):String(item)).join(' · '):'Aucun';
@@ -162,11 +165,12 @@ function mcRecord(item,resource,detail=false){
     const record=resource==='collection'?item.card:item;
     const artwork=resource==='auctions'?record?.card:record;
     const title=record?.name||record?.username||record?.card?.name||(resource==='boosters'?'Tes boosters':record?.id)||'Données MineCards';
-    const data=resource==='collection'?{quantity:item.quantity,...record}:resource==='auctions'?{...record,power:record.card?.power,attack:record.card?.attack,defense:record.card?.defense}:record;
-    const image=typeof artwork?.image==='string'&&/^https:\/\//.test(artwork.image)?`<img class="mc-remote-image" loading="lazy" src="${escapeHtml(artwork.image)}" alt="${escapeHtml(title)}">`:'';
+    const data=resource==='collection'?{quantity:item.quantity,standardQuantity:item.standardQuantity,holographicQuantity:item.holographicQuantity,...record}:resource==='auctions'?{...record,power:record.card?.power,attack:record.card?.attack,defense:record.card?.defense}:record;
+    const holo=artwork?.finish==='HOLOGRAPHIC'||Number(item.holographicQuantity)>0;
+    const image=typeof artwork?.image==='string'&&/^https:\/\//.test(artwork.image)?`<div class="edition-art ${holo?'edition-art-holo':''}"><img class="mc-remote-image" loading="lazy" src="${escapeHtml(artwork.image)}" alt="${escapeHtml(title)}${holo?' · holographique':''}"></div>`:'';
     const entries=Object.entries(data||{}).filter(([key])=>!['image','wikiUrl','name','username','descriptionEn','nameEn'].includes(key));
-    const fields=(detail?entries:entries.filter(([key])=>['power','quantity','rarity','attack','defense','category','dimension','bio','premium','score','rank','currentBid','effectiveStatus','settled','endsAt','available','capacity','nextAt','giftedStandard','giftedPremium','premiumAvailable','premiumNextAt'].includes(key))).map(([key,value])=>`<div><dt>${escapeHtml(mcLabels[key]||key)}</dt><dd>${escapeHtml(mcValue(value))}</dd></div>`).join('');
-    const canDetail=!detail&&['cards','collection','profiles','arenas','auctions'].includes(resource)&&record?.id;
+    const fields=(detail?entries:entries.filter(([key])=>['power','quantity','standardQuantity','holographicQuantity','finish','isSecret','rarity','attack','defense','category','dimension','bio','premium','score','rank','currentBid','effectiveStatus','settled','endsAt','available','capacity','nextAt','giftedStandard','giftedPremium','premiumAvailable','premiumNextAt','specialAvailable','specialNextAt'].includes(key))).map(([key,value])=>`<div><dt>${escapeHtml(mcLabels[key]||key)}</dt><dd>${escapeHtml(mcValue(value))}</dd></div>`).join('');
+    const canDetail=!detail&&['cards','collection','profiles','arenas','auctions'].includes(resource)&&record?.id&&!record?.isSecret;
     const wiki=typeof record?.wikiUrl==='string'&&/^https:\/\//.test(record.wikiUrl)?`<a href="${escapeHtml(record.wikiUrl)}" target="_blank" rel="noopener noreferrer">Wiki Minecraft ↗</a>`:'';
     return `<article class="mc-record">${image}<div class="mc-record-heading"><h4>${escapeHtml(title)}</h4>${resource==='leaderboard'?'<span>#'+escapeHtml(item.rank)+'</span>':''}</div>${record?.description?'<p>'+escapeHtml(record.description)+'</p>':''}<dl>${fields}</dl><div class="mc-record-actions">${canDetail?`<button type="button" class="secondary-button" data-id="${escapeHtml(record.id)}" data-resource="${resource==='collection'?'cards':resource}" onclick="mcOpenDetail(this.dataset.resource,this.dataset.id)">Voir la fiche</button>`:''}${wiki}</div><details><summary>Données complètes de l’API</summary><pre>${escapeHtml(JSON.stringify(item,null,2))}</pre></details></article>`;
 }

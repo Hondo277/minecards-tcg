@@ -107,3 +107,11 @@ JPG, PNG et WebP sont acceptés, jusqu’à 10 Mio avant traitement. Le navigate
 - Corps de requête limité à 4 Mio ; quotas du stockage applicables.
 - CDN et API nécessitant un accès réseau.
 - Pas de suite de tests fonctionnels ; build limité aux contrôles de syntaxe et assets.
+
+## Finitions et préparateur de recyclage
+
+edition-rules.js partage le barème officiel et la lecture conservatrice des finitions entre Node et le navigateur. L'identité de base reste _minecards.cardId : standard et holographique ne créent jamais deux cartes distinctes pour un deck. L'import exige des quantités entières positives ou nulles et standardQuantity + holographicQuantity === quantity. Une carte secrète ne peut pas avoir de stock standard. Les copies anciennes sans ces champs restent inconnues jusqu'à leur actualisation.
+
+recycler-ui.js maintient un plan en mémoire. Son maximum par carte est max(standardQuantity - 1, 0), avec exclusion des holographiques, des cartes secrètes, des cartes locales, des finitions inconnues et des raretés sans taux documenté. Les protections personnelles ne peuvent qu'écarter des cartes supplémentaires. Un changement de stock, de carnet ou de favoris ajuste la sélection ; le changement de compte la vide. Le solde saisi n'est qu'une hypothèse de calcul. Aucune mutation de l'inventaire n'est réalisée.
+
+Les effets holographiques sont décoratifs et respectent prefers-reduced-motion. Les filtres et exports distinguent stock total, standard, holographique et seuls doublons standard recyclables. L'explorateur évite les liens de catalogue non disponibles pour les cartes secrètes.

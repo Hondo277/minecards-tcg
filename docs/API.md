@@ -68,7 +68,7 @@ Clés stables : `mc:<cardId>` ou `local:<id>`. Une nouvelle entrée doit corresp
 
 Ressources : `cards`, `collection`, `boosters`, `profiles`, `arenas`, `auctions`, `leaderboard`. Détails pour `cards`, `profiles`, `arenas` et `auctions`.
 
-Pagination : `page` de 1 à 1 000 et `limit` de 1 à 100, sauf boosters. Filtres : `q`, `rarity`, `category`, `dimension` pour catalogue et collection ; `q` pour profils ; `status` pour enchères. Les paramètres non pris en charge sont refusés.
+Pagination : `page` de 1 à 1 000 et `limit` de 1 à 100, sauf boosters. Filtres : `q`, `rarity`, `category`, `dimension` pour catalogue et collection ; `q` pour profils ; `status` et `rarity` (dont `MYTHIQUE`) pour enchères. Les paramètres non pris en charge sont refusés.
 
 Le même protocole s'applique en local et sur Vercel. `/sync` répond rapidement `202` avec l'état courant. Le navigateur appelle ensuite `/sync/step` pour chaque `job.nextPage`. Chaque étape répond `200` avec l'état confirmé ; la dernière contient aussi `data` (collection fusionnée et favoris). `/status` permet de retrouver l'étape après une interruption. Aucun travail ne continue en arrière-plan après une réponse.
 
@@ -76,9 +76,9 @@ L'état expose `syncProtocol: 2`, `autoSyncMs: 30000` et un `job` avec `id`, `ru
 
 La reprise expire 15 minutes après le début de l'import ; une nouvelle synchronisation est alors nécessaire. Une clé remplacée ou déconnectée invalide les pages déjà lues. Les pages provisoires et l'empreinte de connexion sont privées ; aucune clé, empreinte ou donnée de compte sensible n'est renvoyée par l'état.
 
-### Contrat MineCards consulté le 18 octobre 2026
+### Contrat MineCards consulté le 22 octobre 2026
 
-La [documentation officielle](https://minecards.vercel.app/developpeurs) et son [schéma OpenAPI](https://minecards.vercel.app/openapi.json) indiquent toujours la version **1.1.0**. Toutes les routes disponibles sont intégrées ; aucune route d’écriture n’est proposée par le fournisseur.
+La [documentation officielle](https://minecards.vercel.app/developpeurs) et son [schéma OpenAPI](https://minecards.vercel.app/openapi.json) indiquent toujours la version **1.1.0**, avec les nouveaux champs de finition, cartes secrètes et booster Éclipse. Toutes les routes disponibles sont intégrées ; aucune route d'écriture, de solde de recyclage ou d'historique de recyclage n'est proposée par cette API.
 
 Les lectures distantes ne sont pas mises en cache. Les filtres vides, répétés, inconnus, les raretés / statuts hors liste et les identifiants de détail invalides sont refusés avant d’utiliser le quota distant. Les listes suivent `nextPage` et la limite de navigation de 1 000 pages. Une synchronisation incomplète ou incohérente conserve la collection précédente.
 
@@ -113,3 +113,21 @@ Le journal contient date, action, administrateur, compte ciblé et détail limit
 ## Codes usuels
 
 `400` données invalides · `401` connexion requise ou clé distante refusée · `403` droits / origine refusés · `404` absence · `409` conflit · `413` requête trop volumineuse · `429` limitation · `502` erreur distante · `503` stockage indisponible / occupé.
+
+## Finitions et recycleur — mise à jour du 22 octobre 2026
+
+La synchronisation conserve dans `_minecards` les champs standardQuantity, holographicQuantity et isSecret. quantity reste le stock total disponible, égal à la somme des deux finitions, hors réservations. La répartition est validée avant tout remplacement. Les finitions ne changent ni l'identifiant de base, ni la rareté, ni les statistiques. Les favoris correspondants reçoivent aussi ces métadonnées, sans modifier leurs anciennes attaques / défenses.
+
+MYTHIQUE est une rareté acceptée pour le catalogue, la collection et les enchères. Les cartes secrètes sont absentes du catalogue et de ses détails, même pour leur propriétaire ; elles sont lisibles dans la collection personnelle ou une autre ressource autorisée. Elles sont toujours holographiques. Aucun paramètre distant finish non documenté n'est envoyé : les filtres de finition s'appliquent localement.
+
+Les anciennes copies sans répartition sont inconnues et exclues des projections jusqu'à leur synchronisation. Le format privé des travaux passe à la version 3 pour ne pas réutiliser de pages anciennes sans finitions ; le protocole HTTP par étapes reste syncProtocol: 2.
+
+L'état MineCards et les résumés admin renvoient editions : standardCopies, holographicCopies, holographicCards, recyclableCopies, potentialPoints, unknownCards, knownCards et mythicCards. Les totaux de finitions et potentiels comptent les seules lignes connues. Les doublons généraux restent max(quantity - 1, 0) ; les standard recyclables sont max(standardQuantity - 1, 0) pour une rareté éligible. potentialPoints n'est jamais un solde. L'overview admin comprend aussi les éditions cumulées dans editions.
+
+Le modèle Boosters ajoute specialAvailable, specialNextAt et specialIntervalSeconds pour Éclipse. giftedStandard regroupe les boosters classiques bonus, dont ceux du recycleur, sans isoler leur origine. Les cartes de vitrine et d'enchères peuvent porter finish: STANDARD ou HOLOGRAPHIC ; ce champ est absent des cartes de base du catalogue et de la collection agrégée.
+
+### Préparateur local
+
+Barème lu sur le [recycleur officiel](https://minecards.vercel.app/recycleur) le 22 octobre 2026 : Charbon 1, Cuivre 2, Fer 5, Or 10, Diamant 25, Netherite 50 points ; 50 points donnent un booster classique de cinq cartes. Un original standard et toutes les holographiques sont conservés. Les cartes locales, secrètes ou sans finitions connues sont exclues.
+
+Le plan est temporaire, limité à 100 cartes de base différentes, ajusté au stock et aux protections puis vidé au changement de compte. Le solde manuel facultatif n'est pas sauvegardé. Aucun appel de mutation, aucune suppression locale, aucun crédit réel de points ou booster n'est effectué. Le lien officiel permet de réaliser l'opération sur MineCards.

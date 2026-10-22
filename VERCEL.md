@@ -36,7 +36,7 @@ Importer le dépôt dans Vercel (ou déployer le dossier avec Vercel CLI).
 - Output : `public`.
 - Les routes et la durée de fonction sont configurées dans `vercel.json`.
 
-Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js`, `arena-builder.js`, `workspace-ui.js` et `admin-ui.js`. La fonction `api/index.js` traite les routes `/api/*` et importe notamment `minecards.js`, `minecards-remote.js`, `minecards-sync.js` et `workspace-service.js` : inclure ces modules serveur lors d'un déploiement avec une liste explicite de fichiers. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
+Le dossier public contient uniquement `index.html`, `theme.css`, `minecards-ui.js`, `profile-media.js`, `profile-showcase.js`, `arena-rules.js`, `arena-builder.js`, `workspace-ui.js`, `admin-ui.js`, `edition-rules.js` et `recycler-ui.js`. La fonction `api/index.js` traite les routes `/api/*` et importe notamment `minecards.js`, `minecards-remote.js`, `minecards-sync.js`, `workspace-service.js` et `edition-rules.js` : inclure ces modules serveur lors d'un déploiement avec une liste explicite de fichiers. Les fichiers `data/` sont exclus du déploiement. Les sessions sont persistantes et les cookies utilisent HTTPS en production.
 
 Les carnets, suspensions, annonces, réglages d'inscription et journal admin utilisent la même base privée. Aucun nouveau service ni variable d'environnement n'est nécessaire. Les champs absents d'une ancienne base sont pris en charge sans effacer les comptes existants.
 
@@ -51,3 +51,5 @@ Le corps des requêtes de l’application est limité à 4 Mio pour rester sous 
 Le lancement local reste `npm start` avec le stockage privé dans `data/`. Les variables de migration sont chargées uniquement par la commande de migration.
 
 Références : [Vercel Functions](https://vercel.com/docs/functions), [API REST Upstash](https://upstash.com/docs/redis/features/restapi).
+
+La mise à jour des finitions n'exige aucune nouvelle variable ni migration destructive. Les anciennes copies restent lisibles et sont signalées comme incomplètes jusqu'à la prochaine synchronisation. Le préparateur de recyclage ne stocke aucun portefeuille de points et n'appelle aucun endpoint d'écriture distant.
