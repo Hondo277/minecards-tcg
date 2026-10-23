@@ -1,4 +1,6 @@
 /* Obsidienne : une palette commune, trois dispositions de collection. */
+:root{--obsidian-bg:#111410;--obsidian-surface:#1a1f17;--obsidian-elevated:#22291d;--obsidian-text:#f1f4e7;--obsidian-muted:#b1b9a4;--obsidian-dim:#92a17c;--obsidian-line:#353d2d;--obsidian-line-strong:#52663a;--obsidian-accent:#d2f45b;--obsidian-accent-ink:#1d250c;--obsidian-shadow:#000}
+.text-gray-100,.text-gray-200,.text-gray-300{color:var(--obsidian-text)}.text-gray-400,.text-gray-500{color:var(--obsidian-muted)}.text-gray-600{color:var(--obsidian-dim)}
 :root{--ink:#111410;--panel:#1a1f17;--line:#353d2d;--paper:#f1f4e7;--muted:#b1b9a4;--moss:#d2f45b;--lime:#d2f45b;--coral:#d2f45b;--lavender:#c6d694;--obsidian-bg:#111410;--obsidian-surface:#1a1f17;--obsidian-elevated:#22291d;--obsidian-accent:#d2f45b;--obsidian-line:#353d2d;--obsidian-muted:#b1b9a4;color-scheme:dark}
 body.bg-tcg-base{background:#111410;color:#f1f4e7}::selection{background:#d2f45b;color:#1d250c}*{scrollbar-color:#55643e #111410}::-webkit-scrollbar-track{background:#111410}::-webkit-scrollbar-thumb{background:#55643e}button:focus-visible,a:focus-visible{outline-color:#d2f45b}
 .glass-panel{background:#1a1f17!important;border-color:#353d2d!important;box-shadow:none!important;color:#f1f4e7}

@@ -139,3 +139,9 @@ La préférence layout est conservée dans mc-library-{profileId}, avec les filt
 Les aperçus réutilisent createCardHtml, les images réelles, les statistiques et les actions existantes. Les notes, favoris, modifications locales et accès à la gestion MineCards conservent leurs handlers. Les flèches parcourent seulement les résultats filtrés ; les exports portent toujours sur toute cette sélection et non sur le seul aperçu. Le rendu par lots, la réutilisation du DOM et les protections de la synchronisation restent en place.
 
 Les deux nouveaux assets sont explicitement autorisés par le serveur et copiés par le build. Aucune migration ni variable d’environnement n’est nécessaire. Contrôles : compilation des styles et syntaxe JavaScript ; aucune suite fonctionnelle exécutée.
+
+### Couleurs communes d’Obsidienne
+
+Les déclarations de couleur de theme.css et des blocs CSS historiques de index.html utilisent désormais les variables --obsidian-* définies dans obsidian.css : fond, surface, surface relevée, texte, texte secondaire, bordures, accent et ombre. Les couleurs translucides sont dérivées de ces tokens avec color-mix afin que les anciens bleus, corail et lavandes ne réapparaissent pas dans les panneaux secondaires, survols, sélections ou fenêtres. La palette tcg compilée par Tailwind suit les mêmes couleurs.
+
+Les teintes des raretés, les effets holographiques, les accents d’avatar choisis par l’utilisateur, les erreurs, avertissements et actions de suppression restent sémantiques. Le favicon reprend le cube citron. Aucun changement de données, de calcul, de disposition ou de droits n’est nécessaire.
