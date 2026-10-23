@@ -129,3 +129,13 @@ Le profil, les favoris, le recycleur et la sélection tactique évitent les reco
 La recommandation tactique conserve exactement ArenaRules.recommend mais l’exécute dans deck-worker.js. Le résultat est ignoré si le compte, la collection ou les options ont changé pendant le calcul. Le worker est terminé au changement de compte ; un navigateur sans Worker utilise le calcul existant.
 
 Le CSS utilitaire est généré au build et servi comme fichier statique ; la fonction Vercel exclut node_modules et les fichiers de compilation. Les scripts serveur utilisent toujours uniquement Node natif. Contrôles réalisés : compilation des styles et analyse de syntaxe, sans suite fonctionnelle ni mesure comparative de performance.
+
+## Thème Obsidienne et dispositions de collection
+
+obsidian.css applique la palette noir/citron en conservant la structure et le comportement de la barre latérale. collection-layout.js coordonne trois dispositions de la même collection filtrée : Album (grille), Inventaire (liste et aperçu à droite, placé au-dessus sur petit écran) et Focus (grand aperçu puis cartes compactes). Le changement de disposition agit sur la présentation et ne modifie aucune donnée du compte.
+
+La préférence layout est conservée dans mc-library-{profileId}, avec les filtres et l’ancien champ view pour compatibilité. Une ancienne préférence list est convertie en inventory ; les valeurs inconnues reviennent à album. La sélection de carte reste en mémoire et est effacée au changement de compte. Si la carte est exclue par les filtres ou retirée à la synchronisation, la première carte filtrée est sélectionnée ; un résultat vide masque les aperçus.
+
+Les aperçus réutilisent createCardHtml, les images réelles, les statistiques et les actions existantes. Les notes, favoris, modifications locales et accès à la gestion MineCards conservent leurs handlers. Les flèches parcourent seulement les résultats filtrés ; les exports portent toujours sur toute cette sélection et non sur le seul aperçu. Le rendu par lots, la réutilisation du DOM et les protections de la synchronisation restent en place.
+
+Les deux nouveaux assets sont explicitement autorisés par le serveur et copiés par le build. Aucune migration ni variable d’environnement n’est nécessaire. Contrôles : compilation des styles et syntaxe JavaScript ; aucune suite fonctionnelle exécutée.

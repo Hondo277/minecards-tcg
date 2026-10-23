@@ -14,7 +14,7 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 
 ### Collection
 
-- Affichage en grille ou en liste, recherche, filtres de rareté et classements.
+- Thème Obsidienne (noir et citron) avec trois dispositions : **Album** en grille, **Inventaire** en liste avec fiche à droite et **Focus** avec grande carte sélectionnée et miniatures. Le sélecteur est situé au-dessus des filtres. Recherche, filtres de rareté et classements restent communs.
 - Puissance, attaque, défense et image de chaque carte.
 - Quantité disponible pour les cartes synchronisées depuis MineCards.
 - Compteur de doublons dans la collection et le profil : somme de `max(standardQuantity − 1, 0)` pour chaque carte MineCards avec finitions connues. Exemple : 3 standards et 2 holographiques = 2 doublons ; un original standard est conservé et toutes les holographiques sont exclues. Les anciennes copies sans détail des finitions sont exclues jusqu’à leur actualisation.
@@ -22,7 +22,7 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 - Fusion des cartes locales historiques et des cartes importées, sans compter deux fois les correspondances reconnues.
 - Un nouveau compte démarre sans carte ni deck favori.
 - Filtres combinables par origine, catégorie, dimension, nombre d'exemplaires, puissance minimum / maximum et cartes favorites ; recherche tolérante aux accents incluant les notes et noms anglais.
-- Filtres et affichage grille / liste mémorisés par compte dans le navigateur ; la touche `/` place le curseur dans la recherche.
+- Filtres et disposition Album / Inventaire / Focus mémorisés par compte dans le navigateur ; la touche `/` place le curseur dans la recherche.
 - Rechargement des données depuis le serveur et refus des sauvegardes obsolètes pour éviter qu'un onglet ancien rétablisse des données supprimées.
 - Fiche détaillée de chaque carte, statistiques officielles et enregistrées, exemplaires / doublons et liste des decks qui l'utilisent.
 - Carnet privé : cartes favorites et notes de 600 caractères, conservées séparément de la collection synchronisée.

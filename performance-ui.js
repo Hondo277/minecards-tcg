@@ -55,10 +55,11 @@ function uiSearchText(card){
 }
 function uiCardNode(card,duplicateCount){
     const pinned=!!notebookEntries[workspaceCardKey(card)]?.favorite,cached=uiCardNodes.get(card);
-    if(cached&&cached.duplicateCount===duplicateCount&&cached.pinned===pinned)return cached.node;
+    if(cached&&cached.duplicateCount===duplicateCount&&cached.pinned===pinned){collectionDecorateCard(cached.node,card);return cached.node;}
     if(cached){uiCardObserver?.unobserve(cached.node);uiVisibleCards.delete(cached.node);}
     const template=document.createElement('template');template.innerHTML=createCardHtml(card,true,duplicateCount).trim();
     const node=template.content.firstElementChild;
+    collectionDecorateCard(node,card);
     uiCardNodes.set(card,{node,duplicateCount,pinned});uiCardObserver?.observe(node);return node;
 }
 function uiPaintCollection(list,duplicateCounts){

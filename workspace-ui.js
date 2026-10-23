@@ -8,6 +8,7 @@ const wn=id=>document.getElementById(id);
 function workspaceToast(message,error=false){const node=wn('workspace-feedback');node.textContent=message;node.classList.toggle('is-error',error);}
 function workspaceReset(){
     uiResetPerformance();
+    collectionResetLayout();
     recyclerReset();
     clearInterval(workspaceSiteTimer);workspaceSiteTimer=null;
     workspaceGeneration++;notebookEntries={};workspaceFilteredCards=[];comparedDecks.clear();workspaceNotebookQueue=Promise.resolve();workspaceDeckQueue=Promise.resolve();
@@ -25,7 +26,7 @@ async function workspaceInit(user){
         const saved=JSON.parse(localStorage.getItem('mc-library-'+user.id)||'{}');
         workspacePopulateFilters();
         for(const id of workspaceFilterIds)if(Object.hasOwn(saved,id)){if(id==='collection-pinned')wn(id).checked=saved[id]===true;else{wn(id).value=String(saved[id]);if(wn(id).tagName==='SELECT'&&wn(id).selectedIndex<0)wn(id).value=id==='sort-select'?'valeur-desc':'all';}}
-        setCollectionView(saved.view==='list'?'list':'grid');
+        collectionSetLayout(saved.layout||(saved.view==='list'?'inventory':'album'),false);
     }catch{}
     const results=await Promise.allSettled([apiRequest('/api/notebook'),apiRequest('/api/site'),apiRequest('/api/recycler/wallet')]);
     if(generation!==workspaceGeneration||activeProfile?.id!==user.id)return;
@@ -44,7 +45,7 @@ function workspacePaintSite(settings){
 function workspaceRemember(){
     if(!activeProfile)return;
     const values=Object.fromEntries(workspaceFilterIds.map(id=>[id,id==='collection-pinned'?wn(id).checked:wn(id).value]));
-    values.view=wn('cards-grid').classList.contains('list-view')?'list':'grid';
+    values.view=collectionLayout==='inventory'?'list':'grid';values.layout=collectionLayout;
     const profileId=activeProfile.id;
     uiSchedule('library-preferences',()=>{try{localStorage.setItem('mc-library-'+profileId,JSON.stringify(values));}catch{}},200);
 }

@@ -254,6 +254,7 @@
         @media(max-width:420px) { .settings-pair { grid-template-columns:1fr; } .profile-settings,.profile-summary { padding:20px; } }
     </style>
     <link rel="stylesheet" href="/theme.css">
+    <link rel="stylesheet" href="/obsidian.css">
     <script>try { document.documentElement.classList.toggle('sidebar-collapsed', localStorage.getItem('mc-sidebar-collapsed') === '1'); } catch {}</script>
 </head>
 <body class="auth-loading bg-tcg-base text-gray-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
@@ -341,7 +342,7 @@
             <button type="button" id="profile-chip" class="profile-chip" onclick="switchTab('profile')" title="Ouvrir mon profil" aria-label="Ouvrir mon profil"><i class="fa-solid fa-user" aria-hidden="true"></i><span id="profile-name"></span></button>
         </div>
         <p id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite"></p>
-        <section id="section-collection" class="tab-section space-y-8" aria-label="Ma collection">
+        <section id="section-collection" data-layout="album" class="tab-section space-y-8" aria-label="Ma collection">
             <div class="collection-overview">
                 <div class="overview-lead"><span class="eyebrow">LE CARNET DE COLLECTION</span><h3>Chaque carte<br>ouvre le jeu.</h3><p>Retrouve tes cartes et prépare ta prochaine combinaison.</p><button type="button" onclick="switchTab('builder')" class="text-link">Composer un deck <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button><div class="collection-duplicate-counter" title="Doublons standard uniquement : un original standard conservé par carte. Les holographiques et les finitions inconnues sont exclus."><i class="fa-solid fa-copy" aria-hidden="true"></i><div><span>Doublons</span><small>Standard · hors original et holographiques</small></div><strong id="stat-duplicates" aria-live="polite" aria-label="Nombre de doublons standard connus, originaux et holographiques exclus">0</strong></div></div>
                 <div class="collection-metrics">
@@ -354,7 +355,7 @@
             <div id="collection-recycle-counters" class="recycle-counter-grid glass-panel" aria-label="Points de recyclage et boosters"></div>
             <div id="collection-edition-stats" class="edition-stat-grid glass-panel" aria-label="Finitions et recyclage"></div>
             <div class="collection-browser">
-                <div class="library-heading"><div><span class="eyebrow">LA BIBLIOTHÈQUE</span><h3>Toutes tes cartes</h3></div><div class="view-switch" role="group" aria-label="Affichage des cartes"><button type="button" id="view-grid" class="selected" aria-pressed="true" onclick="setCollectionView('grid')" aria-label="Vue grille"><i class="fa-solid fa-grip" aria-hidden="true"></i></button><button type="button" id="view-list" aria-pressed="false" onclick="setCollectionView('list')" aria-label="Vue liste"><i class="fa-solid fa-list" aria-hidden="true"></i></button></div></div>
+                <div class="library-heading"><div><span class="eyebrow">LA BIBLIOTHÈQUE</span><h3>Toutes tes cartes</h3></div><div class="collection-layout-switch" role="group" aria-label="Disposition de la collection"><button type="button" id="layout-album" class="selected" aria-pressed="true" onclick="collectionSetLayout('album')"><i class="fa-solid fa-grip" aria-hidden="true"></i> Album</button><button type="button" id="layout-inventory" aria-pressed="false" onclick="collectionSetLayout('inventory')"><i class="fa-solid fa-list" aria-hidden="true"></i> Inventaire</button><button type="button" id="layout-focus" aria-pressed="false" onclick="collectionSetLayout('focus')"><i class="fa-solid fa-expand" aria-hidden="true"></i> Focus</button></div><span id="collection-layout-status" class="sr-only" role="status" aria-live="polite">Disposition Album</span></div>
                 <div class="library-filters">
                     <div class="library-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><label class="sr-only" for="search-input">Rechercher une carte</label><input type="search" id="search-input" oninput="scheduleCollectionFilter()" placeholder="Un nom, une carte à retrouver…"></div>
                     <label class="filter-field" for="rarity-filter"><span>Rareté</span><select id="rarity-filter" onchange="filterAndRenderCards()"><option value="all">Toutes les raretés</option><option value="Mythique">Mythique</option><option value="Netherite">Netherite</option><option value="Diamant">Diamant</option><option value="Or">Or</option><option value="Fer">Fer</option><option value="Cuivre">Cuivre</option><option value="Charbon">Charbon</option></select></label>
@@ -363,7 +364,7 @@
                 <details class="collection-advanced glass-panel"><summary><i class="fa-solid fa-sliders" aria-hidden="true"></i> Affiner ma collection <small>Filtres mémorisés · recherche avec la touche /</small></summary><div class="workspace-filter-grid"><label>Origine<select id="collection-source" onchange="filterAndRenderCards()"><option value="all">Toutes les cartes</option><option value="minecards">MineCards</option><option value="local">Locales</option></select></label><label>Catégorie<select id="collection-category" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Dimension<select id="collection-dimension" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Exemplaires<select id="collection-quantity" onchange="filterAndRenderCards()"><option value="all">Tous</option><option value="duplicates">Avec doublons standard</option><option value="single">Un seul exemplaire</option></select></label><label>Finition<select id="collection-finish" onchange="filterAndRenderCards()"><option value="all">Toutes les finitions</option><option value="holographic">Avec holographiques</option><option value="standard">Avec standards</option><option value="holo-only">Holographiques uniquement</option><option value="recyclable">Standard recyclables</option><option value="unknown">À actualiser</option></select></label><label>Puissance minimum<input id="collection-min" type="number" min="0" max="1000000" placeholder="Sans minimum" oninput="scheduleCollectionFilter()"></label><label>Puissance maximum<input id="collection-max" type="number" min="0" max="1000000" placeholder="Sans maximum" oninput="scheduleCollectionFilter()"></label><label class="workspace-check"><input id="collection-pinned" type="checkbox" onchange="filterAndRenderCards()"> Mes cartes favorites uniquement</label></div></details>
                 <div class="collection-export-bar"><span>Retrouve tes notes depuis la fiche de chaque carte.</span><div class="workspace-actions"><button type="button" class="secondary-button" onclick="workspaceReloadAccount()">Recharger mes données</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('csv')">Exporter le CSV filtré</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('json')">Exporter le JSON filtré</button></div></div>
                 <div class="library-caption"><div><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><span id="duplicate-sort-summary" class="duplicate-sort-summary hidden" role="status"></span><span id="collection-sync-state" class="collection-sync-state" role="status" aria-live="polite"></span></div><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
-                <div id="cards-grid" class="card-library-grid"></div>
+                <div class="collection-layout-workspace"><section id="collection-focus" class="collection-selected-preview" aria-label="Carte au premier plan" hidden></section><div id="cards-grid" class="card-library-grid"></div><aside id="collection-inspector" class="collection-selected-preview" aria-label="Aperçu de la carte sélectionnée" hidden></aside></div>
                 <div id="empty-state" class="hidden interface-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h3>Aucune carte à afficher</h3><p>Ajoute ta première carte ou ajuste tes filtres.</p><button type="button" class="workspace-add-button" onclick="openAddModal()">Ajouter une carte</button></div>
             </div>
         </section>
@@ -609,6 +610,7 @@
 
     <!-- Scripts et Données -->
     <script src="/performance-ui.js"></script>
+    <script src="/collection-layout.js"></script>
     <script src="/profile-media.js"></script>
     <script src="/edition-rules.js"></script>
     <script src="/profile-showcase.js"></script>
@@ -1089,23 +1091,14 @@
             return `
                 <article class="collection-card tone-${tones[card.rarete] || 'iron'} ${EditionRules.hasHolo(card)?'has-holographic':''}">
                     <div class="card-art">${visual}<span class="card-number">${card._minecards ? 'MINECARDS · ×'+escapeHtml(card._minecards.quantity) : '#'+escapeHtml(String(card.id).padStart(3,'0'))}</span></div>
-                    <div class="card-identity"><span class="card-rarity ${badgeClass}">${escapeHtml(card.rarete)}</span><h4 title="${name}">${name}</h4>${showActions?editionBadge(card):''}${duplicateCount!==null?`<span class="card-duplicate-detail">${escapeHtml(duplicateCount)} doublon${duplicateCount>1?'s':''} standard · original et holo exclus</span>`:''}</div>
+                    <div class="card-identity"><span class="card-rarity ${badgeClass}">${escapeHtml(card.rarete)}</span><h4 title="${name}">${name}</h4>${showActions?editionBadge(card):''}${showActions?`<button type="button" class="collection-preview-trigger" data-collection-select="${escapeHtml(workspaceCardKey(card))}" aria-pressed="false" aria-label="Afficher l’aperçu de ${name}"><i class="fa-regular fa-eye" aria-hidden="true"></i> Aperçu</button>`:''}${duplicateCount!==null?`<span class="card-duplicate-detail">${escapeHtml(duplicateCount)} doublon${duplicateCount>1?'s':''} standard · original et holo exclus</span>`:''}</div>
                     <dl class="card-numbers"><div class="card-power"><dt>Puissance</dt><dd>${escapeHtml(card.valeur)}</dd></div><div><dt><i class="fa-solid fa-bolt" aria-hidden="true"></i> Attaque</dt><dd>${escapeHtml(card.attaque ?? 50)}</dd></div><div><dt><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Défense</dt><dd>${escapeHtml(card.defense ?? 50)}</dd></div></dl>
                     ${showActions ? workspaceCardTools(card) : ''}
                     ${showActions ? (Number(card.id)<0&&card._minecards ? `<div class="card-controls"><button type="button" onclick="switchTab('minecards')"><i class="fa-solid fa-link" aria-hidden="true"></i> Gérée sur MineCards · ×${escapeHtml(card._minecards.quantity)}</button></div>` : `<div class="card-controls"><button type="button" onclick="openEditModal(${Number(card.id)})"><i class="fa-solid fa-pen" aria-hidden="true"></i> Modifier</button><button type="button" onclick="deleteCard(${Number(card.id)})" aria-label="Supprimer ${name}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button></div>`) : ''}
                 </article>`;
         }
 
-        function setCollectionView(view) {
-            const list = view === 'list';
-            document.getElementById('cards-grid').classList.toggle('list-view', list);
-            for (const [id, selected] of [['view-grid',!list],['view-list',list]]) {
-                const button = document.getElementById(id);
-                button.classList.toggle('selected', selected);
-                button.setAttribute('aria-pressed', String(selected));
-            }
-            workspaceRemember();
-        }
+        function setCollectionView(view) {collectionSetLayout(view==='list'?'inventory':'album');}
 
         function resetCollectionFilters() {
             workspaceClearFilters();
@@ -1113,7 +1106,9 @@
 
         function renderCards(list, duplicateCounts = null) {
             document.getElementById('empty-state').classList.toggle('hidden',list.length>0);
+            collectionUseResults(list);
             uiPaintCollection(list,duplicateCounts);
+            collectionRenderSelection();
         }
 
         function generateDeck() {
