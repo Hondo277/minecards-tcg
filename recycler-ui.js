@@ -1,6 +1,6 @@
 'use strict';
 const recyclerSelection=new Map();
-let recyclerWallet=null,recyclerWalletState='loading',recyclerWalletSaving=false;
+let recyclerWallet=null,recyclerWalletState='loading',recyclerWalletSaving=false,recyclerRowsCache=null;
 const recyclerBalanceLimit=1000000000;
 function recyclerWalletReceive(wallet){
     recyclerWallet=wallet;recyclerWalletState='ready';
@@ -8,12 +8,12 @@ function recyclerWalletReceive(wallet){
     recyclerRenderCounters();recyclerRenderSummary();
 }
 function recyclerRenderCounters(){
-    const info=EditionRules.summary(cards),cost=EditionRules.boosterCost,points=info.potentialPoints,boosters=Math.floor(points/cost),wallet=recyclerWallet;
+    const info=uiCollectionSnapshot().editions,cost=EditionRules.boosterCost,points=info.potentialPoints,boosters=Math.floor(points/cost),wallet=recyclerWallet;
     const fmt=value=>value.toLocaleString('fr-FR');
     const status=wallet?'Solde manuel · '+new Date(wallet.updatedAt).toLocaleString('fr-FR'):recyclerWalletState==='loading'?'Chargement du solde…':recyclerWalletState==='error'?'Solde indisponible · réessaie ci-dessous':'À renseigner depuis MineCards';
     const partial=info.unknownCards>0?'Potentiel partiel : '+info.unknownCards+' carte(s) sans détail des finitions. ':'';
     const html=`<div class="recycle-counter"><i class="fa-solid fa-recycle" aria-hidden="true"></i><strong>${fmt(points)}</strong><span>Points obtenables avec tes doublons</span><small>${fmt(info.recyclableCopies)} standard recyclables · original conservé</small></div><div class="recycle-counter"><i class="fa-solid fa-box-open" aria-hidden="true"></i><strong>${fmt(boosters)}</strong><span>Boosters grâce à ces doublons</span><small>50 points par booster · ${fmt(points%cost)} point(s) restant(s)</small></div><div class="recycle-counter recycle-wallet"><i class="fa-solid fa-coins" aria-hidden="true"></i><strong>${wallet?fmt(wallet.balance):'—'}</strong><span>Mes points possédés · solde renseigné</span><small>${escapeHtml(status)}</small><button type="button" class="secondary-button" onclick="recyclerEditWallet()">${wallet?'Actualiser mon solde':'Renseigner mon solde'}</button></div><p>${partial}Potentiel de toute la collection, avant les protections du plan. Holographiques exclues.${wallet?' Ton solde renseigné finance '+fmt(Math.floor(wallet.balance/cost))+' booster(s) ; avec tous les doublons : '+fmt(Math.floor((wallet.balance+points)/cost))+' booster(s).':''}</p>`;
-    for(const id of ['collection-recycle-counters','profile-recycle-counters','recycler-total-counters'])wn(id).innerHTML=html;
+    for(const id of ['collection-recycle-counters','profile-recycle-counters','recycler-total-counters'])uiSetHTML(wn(id),html);
     wn('recycler-wallet-status').textContent=status+' · L’API ne fournit pas ce solde. Il reste à actualiser après tes échanges sur MineCards.';
     for(const id of ['recycler-wallet-save','recycler-wallet-clear'])wn(id).disabled=recyclerWalletSaving;
 }
@@ -33,6 +33,7 @@ async function recyclerSaveWallet(clear=false){
 }
 function recyclerMessage(text,error=false){const node=wn('recycler-message');node.textContent=text;node.classList.toggle('is-error',error);}
 function recyclerReset(){
+    recyclerRowsCache=null;
     recyclerWallet=null;recyclerWalletState='loading';recyclerWalletSaving=false;
     recyclerSelection.clear();wn('recycler-balance').value='';wn('recycler-exchange-count').value='1';wn('recycler-search').value='';wn('recycler-rarity').value='all';wn('recycler-sort').value='points-desc';wn('recycler-protect-notebook').checked=true;wn('recycler-protect-decks').checked=true;
     wn('recycler-list').textContent='';wn('recycler-message').textContent='';
@@ -47,27 +48,31 @@ function editionBadge(card){
     return `<span class="edition-quantities"><span>Standard ×${info.standard}</span><span class="${info.holographic?'holo-label':''}">Holo ×${info.holographic}</span>${secret?'<span class="mythic-label">Secrète · Mythique</span>':''}</span>`;
 }
 function updateEditionStats(){
-    const info=EditionRules.summary(cards),partial=info.unknownCards>0;
+    const info=uiCollectionSnapshot().editions,partial=info.unknownCards>0;
     const tiles=[['fa-wand-magic-sparkles',info.holographicCopies,'Exemplaires holographiques'],['fa-copy',info.recyclableCopies,'Doublons standard recyclables'],['fa-recycle',info.potentialPoints,'Points de recyclage potentiels'],['fa-gem',info.mythicCards,'Cartes Mythiques']];
     const html=tiles.map(([icon,value,label])=>`<div><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${value.toLocaleString('fr-FR')}${partial?' <small>connus</small>':''}</strong><span>${label}</span></div>`).join('')+(partial?`<p>${info.unknownCards} carte(s) importée(s) sans détail des finitions : synchronise la collection. Les potentiels ne représentent pas ton solde de points.</p>`:'<p>Finitions visuelles · holographiques protégées · les points affichés sont un potentiel, pas ton solde.</p>');
-    for(const id of ['collection-edition-stats','profile-edition-stats'])wn(id).innerHTML=html;
+    for(const id of ['collection-edition-stats','profile-edition-stats'])uiSetHTML(wn(id),html);
     recyclerRenderCounters();
     recyclerRender();
 }
 function recyclerRows(){
+    const snapshot=uiCollectionSnapshot(),notebookProtected=wn('recycler-protect-notebook').checked,decksProtected=wn('recycler-protect-decks').checked;
+    if(recyclerRowsCache?.snapshot===snapshot&&recyclerRowsCache.notes===notebookEntries&&recyclerRowsCache.decks===favoriteDecks&&recyclerRowsCache.deckCount===favoriteDecks.length&&recyclerRowsCache.notebookProtected===notebookProtected&&recyclerRowsCache.decksProtected===decksProtected)return recyclerRowsCache.rows;
     const protectedByDeck=new Set(favoriteDecks.flatMap(deck=>[...(deck.cards||[]),...(deck.supports||[])]).map(deckRemoteId).filter(Boolean));
-    return EditionRules.inventory(cards).map(card=>{
+    const rows=EditionRules.inventory(cards).map(card=>{
         const info=EditionRules.finishes(card),rate=EditionRules.points(card),reasons=[];
-        if(wn('recycler-protect-notebook').checked&&notebookEntries[workspaceCardKey(card)]?.favorite)reasons.push('Carte favorite');
-        if(wn('recycler-protect-decks').checked&&protectedByDeck.has(card._minecards.cardId))reasons.push('Dans un deck favori');
+        if(notebookProtected&&notebookEntries[workspaceCardKey(card)]?.favorite)reasons.push('Carte favorite');
+        if(decksProtected&&protectedByDeck.has(card._minecards.cardId))reasons.push('Dans un deck favori');
         return {id:card._minecards.cardId,card,...info,rate,protected:reasons.length>0,reasons,max:rate===null?0:info.recyclable};
     }).filter(row=>row.known&&row.rate!==null&&row.max>0);
+    recyclerRowsCache={snapshot,notes:notebookEntries,decks:favoriteDecks,deckCount:favoriteDecks.length,notebookProtected,decksProtected,rows};return rows;
 }
 function recyclerFilteredRows(){
     const query=workspaceNormalize(wn('recycler-search').value),rarity=wn('recycler-rarity').value,sort=wn('recycler-sort').value;
     return recyclerRows().filter(row=>workspaceNormalize(row.card.nom+' '+row.id).includes(query)&&(rarity==='all'||EditionRules.rarity(row.card)===rarity)).sort((a,b)=>sort==='name'?a.card.nom.localeCompare(b.card.nom,'fr'):sort==='quantity'?b.max-a.max:sort==='rarity-asc'?a.rate-b.rate||a.card.nom.localeCompare(b.card.nom,'fr'):b.rate*b.max-a.rate*a.max||a.card.nom.localeCompare(b.card.nom,'fr'));
 }
 function recyclerRender(){
+    uiCancelTask('recycler-search');
     if(!wn('recycler-list'))return;
     const candidates=new Map(recyclerRows().map(row=>[row.id,row]));let adjusted=false;
     for(const [id,quantity]of recyclerSelection){
@@ -75,7 +80,8 @@ function recyclerRender(){
         if(allowed!==quantity)adjusted=true;if(allowed>0)recyclerSelection.set(id,allowed);else recyclerSelection.delete(id);
     }
     if(adjusted)recyclerMessage('Le plan a été ajusté selon le stock actuel et les protections choisies.');
-    const info=EditionRules.summary(cards),rows=recyclerFilteredRows(),available=[...candidates.values()].filter(row=>!row.protected);
+    if(wn('section-recycler').classList.contains('hidden')){recyclerRenderSummary();return;}
+    const info=uiCollectionSnapshot().editions,rows=recyclerFilteredRows(),available=[...candidates.values()].filter(row=>!row.protected);
     wn('recycler-inventory-note').textContent=(mcLastSync?'Dernière copie : '+new Date(mcLastSync).toLocaleString('fr-FR')+'. ':'')+info.holographicCopies+' holographique(s) protégée(s). '+(info.unknownCards?info.unknownCards+' carte(s) avec finitions inconnues : une synchronisation est nécessaire.':'Les originaux standard et toutes les holographiques sont conservés.');
     wn('recycler-filter-count').textContent=rows.length+' carte(s) filtrée(s) · '+available.reduce((sum,row)=>sum+row.max,0)+' exemplaire(s) disponibles avec tes protections';
     wn('recycler-list').innerHTML=rows.map(row=>{

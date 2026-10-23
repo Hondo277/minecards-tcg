@@ -6,7 +6,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 240,
-      "excludeFiles": "{data/**,.env*,scripts/**,README.md,VERCEL.md}"
+      "excludeFiles": "{data/**,.env*,scripts/**,styles/**,tailwind.config.cjs,node_modules/**,README.md,VERCEL.md}"
     }
   },
   "rewrites": [

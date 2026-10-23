@@ -101,7 +101,7 @@ Ce dépôt contient le code et la documentation. Les comptes réels, mots de pas
 
 ## Démarrer en local
 
-Prérequis : **Node.js 24.x** et Git pour cloner le dépôt. Le serveur n’a aucune dépendance npm à installer.
+Prérequis : **Node.js 24.x** et Git pour cloner le dépôt. Le serveur n’a aucune dépendance npm à l’exécution. Tailwind CSS 3.4.17 est une dépendance de compilation uniquement ; utilities.css est livré avec le code pour démarrer directement.
 
 ```bash
 git clone https://github.com/Hondo277/minecards-tcg.git
@@ -212,7 +212,7 @@ Le serveur crée `data/` au premier démarrage local. `public/` est généré pa
 | Commande | Usage |
 | --- | --- |
 | `npm start` | Démarrer le serveur local |
-| `npm run build` | Contrôler la syntaxe JS et préparer les sept fichiers publics |
+| `npm run build` | Contrôler la syntaxe JS, compiler le CSS minifié et préparer les assets publics |
 | `npm run migrate:vercel` | Importer les comptes locaux dans Redis vide, avec `.env.vercel.local` |
 
 Le build contrôle la syntaxe des scripts externes et embarqués ; ce n’est pas une suite de tests fonctionnels. Aucune suite automatisée n’est actuellement fournie.
@@ -226,7 +226,7 @@ Le build contrôle la syntaxe des scripts externes et embarqués ; ce n’est pa
 - [Déploiement Vercel](VERCEL.md)
 - [Contribuer](CONTRIBUTING.md)
 
-Le serveur utilise HTTP natif Node.js. Tailwind CSS, Font Awesome et les polices Google sont chargés depuis leurs CDN. Les images de cartes viennent de l’API ou des données des utilisateurs ; le dépôt n’inclut pas les données des comptes réels.
+Le serveur utilise HTTP natif Node.js. Tailwind CSS est compilé localement dans utilities.css ; aucun générateur de styles ne tourne dans le navigateur. Font Awesome et les polices Google restent chargés depuis leurs CDN. Pour régénérer les styles après modification : npm ci puis npm run build. Les images de cartes viennent de l’API ou des données des utilisateurs ; le dépôt n’inclut pas les données des comptes réels.
 
 ## Licence
 

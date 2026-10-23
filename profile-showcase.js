@@ -44,7 +44,7 @@ function strongestProfileCards() {
 
 function profileCardArt(card) {
     const source=typeof card.image==='string' && /^(https:\/\/|data:image\/(jpeg|png|webp);base64,)/.test(card.image)?card.image:'';
-    return source?`<span class="edition-art ${EditionRules.hasHolo(card)?'edition-art-holo':''}"><img src="${escapeHtml(source)}" alt="${escapeHtml(card.nom)}${EditionRules.hasHolo(card)?' · holographique disponible':''}" loading="lazy"></span>`:'<span class="profile-art-placeholder"><i class="fa-solid fa-cube" aria-hidden="true"></i></span>';
+    return source?`<span class="edition-art ${EditionRules.hasHolo(card)?'edition-art-holo':''}"><img src="${escapeHtml(source)}" alt="${escapeHtml(card.nom)}${EditionRules.hasHolo(card)?' · holographique disponible':''}" loading="lazy" decoding="async"></span>`:'<span class="profile-art-placeholder"><i class="fa-solid fa-cube" aria-hidden="true"></i></span>';
 }
 
 function profileDeckPanel({eyebrow,title,deckCards,icon,description,action,strong=false}) {
@@ -73,9 +73,10 @@ function openStrongestProfileDeck() {
 
 function renderProfileShowcase() {
     if (!activeProfile || !document.getElementById('profile-showcase')) return;
+    if(document.getElementById('section-profile').classList.contains('hidden'))return;
     const select=document.getElementById('settings-featured-deck');
     if (select.dataset.deckIds!==JSON.stringify(favoriteDecks.map(deck=>[deck.id,deck.name]))) fillProfileFeaturedDeck(select.value||activeProfile.profile?.featuredDeckId||'');
-    const counts=collectionCopyStats(cards),collection=counts.cards,copies=counts.copies;
+    const counts=uiCollectionSnapshot().counts,collection=counts.cards,copies=counts.copies;
     const strongest=strongestProfileCards();
     const strongestPower=strongest.length===3?strongest.reduce((sum,card)=>sum+profilePower(card),0):null;
     const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();

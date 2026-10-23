@@ -43,6 +43,7 @@ function arenaCardDetails(card){
     return `<span class="arena-role">${escapeHtml(isCreature?stats.roleName:stats.name)}</span>${isCreature?`<dl class="arena-combat-stats"><div><dt>PV</dt><dd>${stats.hp}</dd></div><div><dt>ATQ</dt><dd>${stats.attack}</dd></div><div><dt>Armure</dt><dd>${stats.armor}</dd></div></dl><strong class="arena-ability">${escapeHtml(stats.name)}</strong>`:''}<p class="arena-card-effect">${escapeHtml(stats.description)}</p>`;
 }
 function arenaRender(){
+    if(arenaNode('section-builder').classList.contains('hidden')||arenaNode('arena-builder').classList.contains('hidden'))return;
     const target=arenaNode('arena-target').value,environment=ArenaRules.environments[target];
     arenaNode('arena-environment').textContent=environment.effect;
     arenaNode('arena-stance-note').textContent=ArenaRules.stances[arenaNode('arena-stance').value].description+' Soins, brûlure et recul restent inchangés.';
@@ -63,6 +64,7 @@ function arenaRender(){
     arenaRenderPool();arenaRenderOpponent();
 }
 function arenaRenderPool(){
+    uiCancelTask('arena-search');
     const owned=arenaOwnedCards(),type=arenaNode('arena-card-type').value,filter=arenaNode('arena-card-role').value;
     const words=ArenaRules.normal(arenaNode('arena-card-search').value).split(/\s+/).filter(Boolean);
     const candidates=owned.filter(card=>{
@@ -96,11 +98,15 @@ async function arenaSuggest(){
     try{
         await new Promise(resolve=>setTimeout(resolve,0));
         if(epoch!==arenaEpoch||activeProfile?.id!==profileId)return;
-        const proposed=ArenaRules.recommend(arenaOwnedCards(),arenaNode('arena-target').value,arenaNode('arena-strategy').value,Number(arenaNode('arena-support-limit').value));
+        const snapshot=uiCollectionSnapshot(),target=arenaNode('arena-target').value,strategy=arenaNode('arena-strategy').value,limit=Number(arenaNode('arena-support-limit').value);
+        const proposed=await uiRecommendArena(arenaOwnedCards(),target,strategy,limit);
+        if(epoch!==arenaEpoch||activeProfile?.id!==profileId)return;
+        if(snapshot!==uiCollectionSnapshot()||target!==arenaNode('arena-target').value||strategy!==arenaNode('arena-strategy').value||limit!==Number(arenaNode('arena-support-limit').value)){arenaMessage('La collection ou les options ont changé pendant le calcul. Relance la recherche.');return;}
         if(!proposed){arenaMessage('Il faut trois créatures éligibles dont le coût total ne dépasse pas 18 points. Actualise ta collection ou ajoute des créatures moins rares.');return;}
         arenaTeam={cards:proposed.cards,supports:proposed.supports};
         arenaMessage('Composition proposée avec '+proposed.teamCost+' points. Tu peux changer chaque carte et l’ordre des créatures.',true);arenaRender();
-    }finally{if(epoch===arenaEpoch)button.disabled=false;}
+    }catch(error){if(epoch===arenaEpoch&&activeProfile?.id===profileId)arenaMessage(error.message);}
+    finally{if(epoch===arenaEpoch)button.disabled=false;}
 }
 async function arenaSyncCollection(button){
     if(button.disabled)return;button.disabled=true;const epoch=arenaEpoch;

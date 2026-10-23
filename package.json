@@ -8,8 +8,10 @@
     "build": "node scripts/build.js",
     "migrate:vercel": "node --env-file=.env.vercel.local scripts/migrate-vercel.js"
   },
-  "dependencies": {},
   "engines": {
     "node": "24.x"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
   }
 }

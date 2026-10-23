@@ -7,6 +7,7 @@ const workspaceFilterIds=['search-input','rarity-filter','sort-select','collecti
 const wn=id=>document.getElementById(id);
 function workspaceToast(message,error=false){const node=wn('workspace-feedback');node.textContent=message;node.classList.toggle('is-error',error);}
 function workspaceReset(){
+    uiResetPerformance();
     recyclerReset();
     clearInterval(workspaceSiteTimer);workspaceSiteTimer=null;
     workspaceGeneration++;notebookEntries={};workspaceFilteredCards=[];comparedDecks.clear();workspaceNotebookQueue=Promise.resolve();workspaceDeckQueue=Promise.resolve();
@@ -44,12 +45,13 @@ function workspaceRemember(){
     if(!activeProfile)return;
     const values=Object.fromEntries(workspaceFilterIds.map(id=>[id,id==='collection-pinned'?wn(id).checked:wn(id).value]));
     values.view=wn('cards-grid').classList.contains('list-view')?'list':'grid';
-    try{localStorage.setItem('mc-library-'+activeProfile.id,JSON.stringify(values));}catch{}
+    const profileId=activeProfile.id;
+    uiSchedule('library-preferences',()=>{try{localStorage.setItem('mc-library-'+profileId,JSON.stringify(values));}catch{}},200);
 }
 function workspacePopulateFilters(){
-    workspaceQuantities=new Map(collectionCopyStats(cards).entries.map(entry=>[deckIdentity(entry.card),entry.quantity]));
+    const snapshot=uiCollectionSnapshot();workspaceQuantities=snapshot.quantities;
     for(const [id,field]of [['collection-category','category'],['collection-dimension','dimension']]){
-        const node=wn(id),values=[...new Set(cards.map(card=>card._minecards?.[field]).filter(Boolean))].sort();
+        const node=wn(id),values=field==='category'?snapshot.categories:snapshot.dimensions;
         const signature=JSON.stringify(values);if(node.dataset.values===signature)continue;
         const selected=node.value;node.innerHTML='<option value="all">Toutes</option>'+values.map(value=>`<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');node.dataset.values=signature;
         node.value=values.includes(selected)?selected:'all';
@@ -60,7 +62,7 @@ function workspaceFilterState(){
     return {source:wn('collection-source').value,category:wn('collection-category').value,dimension:wn('collection-dimension').value,quantity:wn('collection-quantity').value,finish:wn('collection-finish').value,min:wn('collection-min').value===''?null:Number(wn('collection-min').value),max:wn('collection-max').value===''?null:Number(wn('collection-max').value),pinned:wn('collection-pinned').checked};
 }
 function workspaceUpdateDerived(){
-    const signature=JSON.stringify(cards);if(signature===workspaceCollectionSignature)return;
+    const signature=uiCollectionSnapshot();if(signature===workspaceCollectionSignature)return;
     workspaceCollectionSignature=signature;updateStats();updateBuilderState();arenaRefreshCollection();updateEditionStats();
 }
 function workspaceMatch(card,state){
@@ -69,7 +71,7 @@ function workspaceMatch(card,state){
     const matchesFinish=state.finish==='all'||state.finish==='holographic'&&finish.holographic>0||state.finish==='standard'&&finish.standard>0||state.finish==='holo-only'&&finish.known&&finish.standard===0&&finish.holographic>0||state.finish==='recyclable'&&finish.recyclable>0&&EditionRules.points(card)!==null||state.finish==='unknown'&&!!remote&&!finish.known;
     return matchesFinish&&(state.source==='all'||(state.source==='minecards'?!!remote:!remote))&&(state.category==='all'||remote?.category===state.category)&&(state.dimension==='all'||remote?.dimension===state.dimension)&&(state.quantity==='all'||(state.quantity==='duplicates'?EditionRules.duplicates(card,quantity)>0:quantity===1))&&(state.min===null||power!==null&&power>=state.min)&&(state.max===null||power!==null&&power<=state.max)&&(!state.pinned||notebookEntries[workspaceCardKey(card)]?.favorite===true);
 }
-function workspaceSearchMatch(card,query){return workspaceNormalize([card.nom,card._minecards?.nameEn,card._minecards?.category,card._minecards?.dimension,notebookEntries[workspaceCardKey(card)]?.note].join(' ')).includes(workspaceNormalize(query));}
+function workspaceSearchMatch(card,query){return !query||uiSearchText(card).includes(query);}
 function workspaceClearFilters(render=true){
     for(const id of workspaceFilterIds){const node=wn(id);if(id==='collection-pinned')node.checked=false;else node.value=id==='sort-select'?'valeur-desc':['search-input','collection-min','collection-max'].includes(id)?'':'all';}
     if(render)filterAndRenderCards();
@@ -82,6 +84,7 @@ function workspaceDownload(name,content,type='application/json'){
     const url=URL.createObjectURL(new Blob([content],{type})),anchor=document.createElement('a');anchor.href=url;anchor.download=name;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function workspaceExportCollection(format='csv'){
+    uiFlushTask('collection-filter');
     const list=[...new Map(workspaceFilteredCards.map(card=>[deckIdentity(card),card])).values()];
     if(!list.length){workspaceToast('Aucune carte à exporter avec ces filtres.',true);return;}
     const rows=list.map(card=>({id:workspaceCardKey(card),nom:card.nom,rarete:card.rarete,puissance:deckPower(card),attaque:card.attaque,defense:card.defense,exemplaires:workspaceQuantities.get(deckIdentity(card))||1,doublons:card._minecards&&!EditionRules.finishes(card).known?null:EditionRules.duplicates(card,workspaceQuantities.get(deckIdentity(card))||1),standard:EditionRules.finishes(card).standard,holographique:EditionRules.finishes(card).holographic,recyclable:EditionRules.finishes(card).known?EditionRules.finishes(card).recyclable:null,secrete:EditionRules.secret(card),categorie:card._minecards?.category||'',dimension:card._minecards?.dimension||'',source:card._minecards?'MineCards':'Locale',note:notebookEntries[workspaceCardKey(card)]?.note||''}));
@@ -131,9 +134,11 @@ function workspaceDeckSelection(){
     return favoriteDecks.filter(deck=>(kind==='all'||(kind==='arena')===(deck.mode==='arena'))&&workspaceNormalize([deck.name,...(deck.cards||[]).map(card=>card.nom),...(deck.supports||[]).map(card=>card.nom)].join(' ')).includes(query)).sort((a,b)=>sort==='power-desc'?Number(b.totalPower)-Number(a.totalPower):sort==='power-asc'?Number(a.totalPower)-Number(b.totalPower):sort==='name'?String(a.name).localeCompare(String(b.name),'fr'):Number(b.id)-Number(a.id));
 }
 function renderFavoriteDecks(){
+    uiCancelTask('deck-search');
     renderProfileShowcase();
     recyclerRender();
     for(const id of [...comparedDecks])if(!favoriteDecks.some(deck=>String(deck.id)===id))comparedDecks.delete(id);
+    if(wn('section-decks').classList.contains('hidden'))return;
     const list=workspaceDeckSelection();wn('no-favorites-state').classList.toggle('hidden',favoriteDecks.length>0);wn('deck-no-results').hidden=list.length>0||!favoriteDecks.length;
     wn('deck-visible-count').textContent=list.length+' / '+favoriteDecks.length+' deck(s)';
     wn('deck-compare-button').disabled=comparedDecks.size!==2;wn('deck-compare-button').textContent='Comparer ('+comparedDecks.size+'/2)';

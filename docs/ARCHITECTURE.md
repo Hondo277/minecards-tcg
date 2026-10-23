@@ -98,7 +98,7 @@ JPG, PNG et WebP sont acceptés, jusqu’à 10 Mio avant traitement. Le navigate
 
 ## Build et limites
 
-`scripts/build.js` contrôle la syntaxe du JS externe et embarqué, puis copie une liste explicite de sept assets dans `public/`. Il refuse les fichiers inattendus. La fonction passe par `api/index.js` et `server.js`.
+`scripts/build.js` contrôle la syntaxe du JS externe et embarqué, compile Tailwind 3.4.17 avec styles/tailwind.css et tailwind.config.cjs, puis copie une liste explicite d’assets dans public/. utilities.css est versionné pour permettre le démarrage local sans installation des dépendances de compilation. Il refuse les fichiers inattendus. La fonction passe par `api/index.js` et `server.js`.
 
 - API MineCards consultée uniquement, sans écriture distante.
 - Aucun compte ni administrateur précréé dans le dépôt.
@@ -115,3 +115,17 @@ edition-rules.js partage le barème officiel et la lecture conservatrice des fin
 recycler-ui.js maintient un plan en mémoire. Son maximum par carte est max(standardQuantity - 1, 0), avec exclusion des holographiques, des cartes secrètes, des cartes locales, des finitions inconnues et des raretés sans taux documenté. Les protections personnelles ne peuvent qu'écarter des cartes supplémentaires. Un changement de stock, de carnet ou de favoris ajuste la sélection ; le changement de compte la vide. Le solde renseigné explicitement est conservé dans user.recyclerWallet, hors de user.data, avec source manual et une date serveur. GET/PUT /api/recycler/wallet n’accède qu’au compte connecté ; une synchronisation ou une sauvegarde de collection ne l’écrase pas. Le changement de compte efface l’état visuel avant de charger son solde. Les compteurs séparent potentiel de toute la collection, boosters à 50 points et dernier solde manuel enregistré. Une saisie non enregistrée ne modifie que la projection du plan. Aucune mutation de l'inventaire n'est réalisée.
 
 Les effets holographiques sont décoratifs et respectent prefers-reduced-motion. Les filtres et exports distinguent stock total, standard, holographique et seuls doublons standard recyclables. L'explorateur évite les liens de catalogue non disponibles pour les cartes secrètes.
+
+## Fluidité de l’interface — 23 octobre 2026
+
+performance-ui.js regroupe les recherches après 110 ms de saisie et les écritures des préférences après 200 ms. Les changements de filtre explicites restent immédiats ; un export vide la recherche en attente avant de calculer son contenu. Les préférences en attente sont écrites à la sortie de la page et avant un changement de compte.
+
+Les statistiques, quantités, catégories et textes de recherche sont conservés en mémoire, sans sérialiser toute la collection à chaque frappe. Le cache est invalidé par changement de tableau, de révision de sauvegarde ou de profil ; les annotations et favoris conservent leur invalidation propre. Aucun cache privé n’est partagé entre comptes.
+
+La collection réutilise ses éléments DOM et leurs images. Les nouveaux éléments sont insérés par lots de 32 maximum et environ 7 ms de construction, avec reprise à la frame suivante. Un changement de recherche, de collection ou de compte annule les anciennes insertions ; les filtres et exports continuent de porter sur la totalité de la collection. content-visibility permet au navigateur de différer le rendu des cartes hors écran, sans pagination supplémentaire.
+
+Le profil, les favoris, le recycleur et la sélection tactique évitent les reconstructions de listes quand leur onglet est masqué. La barre latérale mesure seulement les blocs de l’onglet actif et les cartes proches de l’écran, suivies par IntersectionObserver ; prefers-reduced-motion désactive ses mouvements. Les images utilisent decoding=async et les panneaux opaques évitent les flous d’arrière-plan.
+
+La recommandation tactique conserve exactement ArenaRules.recommend mais l’exécute dans deck-worker.js. Le résultat est ignoré si le compte, la collection ou les options ont changé pendant le calcul. Le worker est terminé au changement de compte ; un navigateur sans Worker utilise le calcul existant.
+
+Le CSS utilitaire est généré au build et servi comme fichier statique ; la fonction Vercel exclut node_modules et les fichiers de compilation. Les scripts serveur utilisent toujours uniquement Node natif. Contrôles réalisés : compilation des styles et analyse de syntaxe, sans suite fonctionnelle ni mesure comparative de performance.

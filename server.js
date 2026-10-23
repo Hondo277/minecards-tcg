@@ -375,7 +375,7 @@ async function handler(req, res) {
         catch { return sendJson(res, 400, { error:'URL invalide.' }); }
         const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
         const filePath = path.resolve(__dirname, requested);
-        if (!['index.html','theme.css','minecards-ui.js','profile-media.js','profile-showcase.js','arena-rules.js','arena-builder.js','workspace-ui.js','admin-ui.js','edition-rules.js','recycler-ui.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
+        if (!['index.html','theme.css','utilities.css','performance-ui.js','deck-worker.js','minecards-ui.js','profile-media.js','profile-showcase.js','arena-rules.js','arena-builder.js','workspace-ui.js','admin-ui.js','edition-rules.js','recycler-ui.js'].includes(requested) || !filePath.startsWith(__dirname + path.sep)) return sendJson(res, 404, { error:'Fichier introuvable.' });
         fs.readFile(filePath, (error, content) => {
             if (error) return sendJson(res, error.code === 'ENOENT' ? 404 : 500, { error:error.code === 'ENOENT' ? 'Fichier introuvable.' : 'Erreur serveur.' });
             res.writeHead(200, { 'Content-Type':MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream', 'X-Content-Type-Options':'nosniff', 'Cache-Control':'no-cache' });

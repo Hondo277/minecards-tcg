@@ -1,4 +1,12 @@
 /* MineCards — bleu nocturne, corail et lavande. */
+/* Les panneaux opaques n'ont pas besoin de recalculer un flou d'arrière-plan. */
+.glass-panel { backdrop-filter:none!important;-webkit-backdrop-filter:none!important; }
+.collection-card,.saved-deck,.recycler-row { content-visibility:auto;contain-intrinsic-size:auto 470px; }
+.saved-deck { contain-intrinsic-size:auto 390px; }
+.recycler-row { contain-intrinsic-size:auto 105px; }
+.list-view .collection-card { contain-intrinsic-size:auto 120px; }
+.sidebar-in-motion main,.sidebar-in-motion footer { will-change:transform; }
+.ui-background *,.ui-background *::before,.ui-background *::after { animation-play-state:paused!important; }
 :root {
     --sidebar-width:244px;
     --ink:#101624;

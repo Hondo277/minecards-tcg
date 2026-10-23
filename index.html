@@ -4,29 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MineCards TCG - Plateforme de Collection & Stratégie Avancée</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        tcg: {
-                            base: '#101624',
-                            surface: '#1a2335',
-                            surfaceHover: '#26334a',
-                            border: '#344058',
-                            emerald: '#ffa58f',
-                            emeraldGlow: '#ec897b',
-                            gold: '#f59e0b',
-                            purple: '#8b5cf6',
-                            cyan: '#06b6d4'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="/utilities.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -376,11 +356,11 @@
             <div class="collection-browser">
                 <div class="library-heading"><div><span class="eyebrow">LA BIBLIOTHÈQUE</span><h3>Toutes tes cartes</h3></div><div class="view-switch" role="group" aria-label="Affichage des cartes"><button type="button" id="view-grid" class="selected" aria-pressed="true" onclick="setCollectionView('grid')" aria-label="Vue grille"><i class="fa-solid fa-grip" aria-hidden="true"></i></button><button type="button" id="view-list" aria-pressed="false" onclick="setCollectionView('list')" aria-label="Vue liste"><i class="fa-solid fa-list" aria-hidden="true"></i></button></div></div>
                 <div class="library-filters">
-                    <div class="library-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><label class="sr-only" for="search-input">Rechercher une carte</label><input type="search" id="search-input" oninput="filterAndRenderCards()" placeholder="Un nom, une carte à retrouver…"></div>
+                    <div class="library-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><label class="sr-only" for="search-input">Rechercher une carte</label><input type="search" id="search-input" oninput="scheduleCollectionFilter()" placeholder="Un nom, une carte à retrouver…"></div>
                     <label class="filter-field" for="rarity-filter"><span>Rareté</span><select id="rarity-filter" onchange="filterAndRenderCards()"><option value="all">Toutes les raretés</option><option value="Mythique">Mythique</option><option value="Netherite">Netherite</option><option value="Diamant">Diamant</option><option value="Or">Or</option><option value="Fer">Fer</option><option value="Cuivre">Cuivre</option><option value="Charbon">Charbon</option></select></label>
                     <label class="filter-field" for="sort-select"><span>Classement</span><select id="sort-select" onchange="filterAndRenderCards()"><option value="valeur-desc">Puissance décroissante</option><option value="valeur-asc">Puissance croissante</option><option value="duplicates-desc">Doublons standard : du plus au moins</option><option value="duplicates-asc">Doublons standard : du moins au plus</option><option value="nom-asc">Nom A → Z</option><option value="nom-desc">Nom Z → A</option><option value="attaque-desc">Attaque max</option><option value="defense-desc">Défense max</option></select></label>
                 </div>
-                <details class="collection-advanced glass-panel"><summary><i class="fa-solid fa-sliders" aria-hidden="true"></i> Affiner ma collection <small>Filtres mémorisés · recherche avec la touche /</small></summary><div class="workspace-filter-grid"><label>Origine<select id="collection-source" onchange="filterAndRenderCards()"><option value="all">Toutes les cartes</option><option value="minecards">MineCards</option><option value="local">Locales</option></select></label><label>Catégorie<select id="collection-category" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Dimension<select id="collection-dimension" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Exemplaires<select id="collection-quantity" onchange="filterAndRenderCards()"><option value="all">Tous</option><option value="duplicates">Avec doublons standard</option><option value="single">Un seul exemplaire</option></select></label><label>Finition<select id="collection-finish" onchange="filterAndRenderCards()"><option value="all">Toutes les finitions</option><option value="holographic">Avec holographiques</option><option value="standard">Avec standards</option><option value="holo-only">Holographiques uniquement</option><option value="recyclable">Standard recyclables</option><option value="unknown">À actualiser</option></select></label><label>Puissance minimum<input id="collection-min" type="number" min="0" max="1000000" placeholder="Sans minimum" oninput="filterAndRenderCards()"></label><label>Puissance maximum<input id="collection-max" type="number" min="0" max="1000000" placeholder="Sans maximum" oninput="filterAndRenderCards()"></label><label class="workspace-check"><input id="collection-pinned" type="checkbox" onchange="filterAndRenderCards()"> Mes cartes favorites uniquement</label></div></details>
+                <details class="collection-advanced glass-panel"><summary><i class="fa-solid fa-sliders" aria-hidden="true"></i> Affiner ma collection <small>Filtres mémorisés · recherche avec la touche /</small></summary><div class="workspace-filter-grid"><label>Origine<select id="collection-source" onchange="filterAndRenderCards()"><option value="all">Toutes les cartes</option><option value="minecards">MineCards</option><option value="local">Locales</option></select></label><label>Catégorie<select id="collection-category" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Dimension<select id="collection-dimension" onchange="filterAndRenderCards()"><option value="all">Toutes</option></select></label><label>Exemplaires<select id="collection-quantity" onchange="filterAndRenderCards()"><option value="all">Tous</option><option value="duplicates">Avec doublons standard</option><option value="single">Un seul exemplaire</option></select></label><label>Finition<select id="collection-finish" onchange="filterAndRenderCards()"><option value="all">Toutes les finitions</option><option value="holographic">Avec holographiques</option><option value="standard">Avec standards</option><option value="holo-only">Holographiques uniquement</option><option value="recyclable">Standard recyclables</option><option value="unknown">À actualiser</option></select></label><label>Puissance minimum<input id="collection-min" type="number" min="0" max="1000000" placeholder="Sans minimum" oninput="scheduleCollectionFilter()"></label><label>Puissance maximum<input id="collection-max" type="number" min="0" max="1000000" placeholder="Sans maximum" oninput="scheduleCollectionFilter()"></label><label class="workspace-check"><input id="collection-pinned" type="checkbox" onchange="filterAndRenderCards()"> Mes cartes favorites uniquement</label></div></details>
                 <div class="collection-export-bar"><span>Retrouve tes notes depuis la fiche de chaque carte.</span><div class="workspace-actions"><button type="button" class="secondary-button" onclick="workspaceReloadAccount()">Recharger mes données</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('csv')">Exporter le CSV filtré</button><button type="button" class="secondary-button" onclick="workspaceExportCollection('json')">Exporter le JSON filtré</button></div></div>
                 <div class="library-caption"><div><span id="rarity-count-badge"><span id="rarity-count-val">0</span> carte(s) affichée(s)</span><span id="duplicate-sort-summary" class="duplicate-sort-summary hidden" role="status"></span><span id="collection-sync-state" class="collection-sync-state" role="status" aria-live="polite"></span></div><button type="button" onclick="resetCollectionFilters()">Réinitialiser les filtres <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></button></div>
                 <div id="cards-grid" class="card-library-grid"></div>
@@ -436,7 +416,7 @@
                         <div class="arena-save-row"><label for="arena-deck-name">Nom de l’équipe<input id="arena-deck-name" maxlength="120" placeholder="Mon équipe d’arène"></label><button id="arena-save" type="button" class="workspace-add-button" onclick="arenaSaveTeam()">Enregistrer en favori</button><button type="button" class="secondary-button" onclick="arenaCopyTeam()">Copier l’équipe</button></div>
                     </div>
                 </div>
-                <div class="arena-card-browser glass-panel"><div class="arena-browser-heading"><h3>Ta sélection tactique</h3><p id="arena-card-count"></p></div><div class="arena-browser-filters"><label class="sr-only" for="arena-card-search">Rechercher une carte</label><input id="arena-card-search" type="search" placeholder="Nom, catégorie, dimension…" oninput="arenaRenderPool()"><label>Type<select id="arena-card-type" onchange="arenaRenderPool()"><option value="creature">Créatures</option><option value="support">Soutiens</option></select></label><label>Rôle / effet<select id="arena-card-role" onchange="arenaRenderPool()"><option value="all">Tous les rôles et effets</option><option value="striker">Attaquant</option><option value="tank">Protecteur</option><option value="healer">Soigneur</option><option value="trickster">Perturbateur</option><option value="heal">Ravitaillement</option><option value="cleanse">Purification</option><option value="blast">Explosion</option><option value="guard">Abri</option><option value="weapon">Armement</option><option value="energy">Impulsion</option></select></label></div><div id="arena-card-pool" class="arena-card-pool"></div></div>
+                <div class="arena-card-browser glass-panel"><div class="arena-browser-heading"><h3>Ta sélection tactique</h3><p id="arena-card-count"></p></div><div class="arena-browser-filters"><label class="sr-only" for="arena-card-search">Rechercher une carte</label><input id="arena-card-search" type="search" placeholder="Nom, catégorie, dimension…" oninput="uiSchedule('arena-search',arenaRenderPool)"><label>Type<select id="arena-card-type" onchange="arenaRenderPool()"><option value="creature">Créatures</option><option value="support">Soutiens</option></select></label><label>Rôle / effet<select id="arena-card-role" onchange="arenaRenderPool()"><option value="all">Tous les rôles et effets</option><option value="striker">Attaquant</option><option value="tank">Protecteur</option><option value="healer">Soigneur</option><option value="trickster">Perturbateur</option><option value="heal">Ravitaillement</option><option value="cleanse">Purification</option><option value="blast">Explosion</option><option value="guard">Abri</option><option value="weapon">Armement</option><option value="energy">Impulsion</option></select></label></div><div id="arena-card-pool" class="arena-card-pool"></div></div>
                 <section class="arena-opponent-panel glass-panel"><div class="arena-browser-heading"><div><span class="eyebrow">LES INFORMATIONS PUBLIÉES</span><h3>Le champion et sa défense</h3></div><button type="button" class="secondary-button" id="arena-load-opponents" onclick="arenaLoadOpponents()">Actualiser les arènes</button></div><p id="arena-opponent-status" class="arena-explanation" role="status"></p><div id="arena-opponent-content"></div></section>
                 <details class="arena-rules-guide glass-panel"><summary>Repères pour ton prochain combat</summary><div><p>La première créature démarre active. Changer de créature coûte normalement 1 énergie et l’initiative alterne d’un tour à l’autre. Une posture peut changer gratuitement à chaque tour ; ses modificateurs concernent les dégâts directs.</p><p>Les capacités affichées coûtent 2 énergie et ont 2 tours de récupération. Les soutiens ne disparaissent pas de la collection, mais chacun ne s’utilise qu’une fois pendant le combat.</p><p>Après 30 tours, la somme des pourcentages de vie restants départage les équipes. Une égalité profite au champion : préserver tes trois créatures peut compter davantage que la puissance brute.</p><p>Les propositions privilégient les statistiques de combat, les rôles et le terrain. Elles n’annoncent pas de probabilité de victoire. Le résultat dépend des actions et des informations adverses disponibles.</p><a href="https://minecards.vercel.app/arenes" target="_blank" rel="noopener noreferrer">Ouvrir les arènes sur MineCards ↗</a></div></details>
             </div>
@@ -444,7 +424,7 @@
 
         <section id="section-decks" class="tab-section hidden space-y-6" aria-label="Decks favoris">
             <div class="library-heading"><div><span class="eyebrow">TES COMBINAISONS SAUVEGARDÉES</span><h3>Prêts pour la prochaine partie.</h3></div><button type="button" class="secondary-button" onclick="switchTab('builder')"><i class="fa-solid fa-plus" aria-hidden="true"></i> Composer un deck</button></div>
-            <div class="deck-library-toolbar glass-panel"><label>Recherche<input id="deck-search" type="search" placeholder="Nom du deck ou d’une carte…" oninput="renderFavoriteDecks()"></label><label>Format<select id="deck-kind" onchange="renderFavoriteDecks()"><option value="all">Tous</option><option value="power">Trios</option><option value="arena">Arènes</option></select></label><label>Classer<select id="deck-sort" onchange="renderFavoriteDecks()"><option value="recent">Plus récents</option><option value="power-desc">Puissance décroissante</option><option value="power-asc">Puissance croissante</option><option value="name">Nom A → Z</option></select></label><button id="deck-compare-button" class="secondary-button" type="button" onclick="workspaceCompareDecks()" disabled>Comparer (0/2)</button><span id="deck-visible-count" role="status"></span></div>
+            <div class="deck-library-toolbar glass-panel"><label>Recherche<input id="deck-search" type="search" placeholder="Nom du deck ou d’une carte…" oninput="uiSchedule('deck-search',renderFavoriteDecks)"></label><label>Format<select id="deck-kind" onchange="renderFavoriteDecks()"><option value="all">Tous</option><option value="power">Trios</option><option value="arena">Arènes</option></select></label><label>Classer<select id="deck-sort" onchange="renderFavoriteDecks()"><option value="recent">Plus récents</option><option value="power-desc">Puissance décroissante</option><option value="power-asc">Puissance croissante</option><option value="name">Nom A → Z</option></select></label><button id="deck-compare-button" class="secondary-button" type="button" onclick="workspaceCompareDecks()" disabled>Comparer (0/2)</button><span id="deck-visible-count" role="status"></span></div>
             <p id="deck-no-results" class="admin-no-records" hidden>Aucun deck pour ces filtres.</p>
             <div id="favorite-decks-grid" class="favorite-library"></div>
             <div id="no-favorites-state" class="hidden interface-empty"><i class="fa-regular fa-star" aria-hidden="true"></i><h3>Une place pour tes meilleurs trios.</h3><p>Compose un deck dans l’atelier et enregistre-le ici.</p><button type="button" class="workspace-add-button" onclick="switchTab('builder')">Ouvrir l’atelier</button></div>
@@ -455,7 +435,7 @@
             <div class="recycler-api-notice"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><p>Ce panneau prépare un <strong>plan estimatif</strong>. L’API publique ne transmet pas le solde de points et ne permet aucun échange. Le recyclage et la conversion en boosters se font sur MineCards. Aucune carte n’est retirée par ce préparateur. Les cartes locales et les finitions inconnues sont exclues des calculs.</p></div>
             <div id="recycler-total-counters" class="recycle-counter-grid glass-panel" aria-label="Points de recyclage et boosters"></div>
             <p id="recycler-inventory-note" class="admin-search-count" role="status"></p>
-            <div class="recycler-layout"><div class="recycler-inventory glass-panel"><div class="admin-section-heading"><div><span class="eyebrow">TES DOUBLONS STANDARD</span><h3>Choisir les cartes</h3></div><span class="status-pill">100 cartes différentes maximum par plan</span></div><div class="recycler-filters"><label>Recherche<input id="recycler-search" type="search" placeholder="Nom ou identifiant…" oninput="recyclerRender()"></label><label>Rareté<select id="recycler-rarity" onchange="recyclerRender()"><option value="all">Toutes les raretés</option><option value="CHARBON">Charbon · 1 pt</option><option value="CUIVRE">Cuivre · 2 pts</option><option value="FER">Fer · 5 pts</option><option value="OR">Or · 10 pts</option><option value="DIAMANT">Diamant · 25 pts</option><option value="NETHERITE">Netherite · 50 pts</option></select></label><label>Classer<select id="recycler-sort" onchange="recyclerRender()"><option value="points-desc">Potentiel décroissant</option><option value="rarity-asc">Raretés basses d’abord</option><option value="quantity">Plus de doublons</option><option value="name">Nom A → Z</option></select></label></div><div class="recycler-protections"><label class="workspace-check"><input id="recycler-protect-notebook" type="checkbox" checked onchange="recyclerRender()"> Écarter mes cartes favorites</label><label class="workspace-check"><input id="recycler-protect-decks" type="checkbox" checked onchange="recyclerRender()"> Écarter les cartes de mes decks favoris</label></div><div class="workspace-actions recycler-selection-actions"><button class="secondary-button" type="button" onclick="recyclerPrepare('one')">1 par carte filtrée</button><button class="secondary-button" type="button" onclick="recyclerPrepare('max')">Maximum filtré</button><button class="secondary-button" type="button" onclick="recyclerPrepareBooster()">Compléter le prochain seuil de 50 pts</button><button class="secondary-button" type="button" onclick="recyclerPrepare('clear')">Vider le plan</button></div><p id="recycler-filter-count" class="admin-search-count" role="status"></p><div id="recycler-list" class="recycler-list"></div></div><aside class="recycler-plan glass-panel"><span class="eyebrow">SIMULATION · AUCUN TRANSFERT</span><h3>Ton plan de recyclage</h3><div class="recycler-plan-metrics"><div><strong id="recycler-plan-count">0</strong><span>standard à recycler</span></div><div><strong id="recycler-plan-points">0</strong><span>points à obtenir</span></div><div><strong id="recycler-plan-boosters">0</strong><span>boosters finançables</span></div></div><div class="settings-form"><label>Solde actuel MineCards (facultatif)<input id="recycler-balance" type="number" min="0" max="1000000000" step="1" aria-describedby="recycler-wallet-status" placeholder="À saisir depuis MineCards" oninput="recyclerRenderSummary()"></label><small id="recycler-wallet-status" role="status">Solde manuel à renseigner depuis MineCards.</small><div class="workspace-actions"><button id="recycler-wallet-save" type="button" class="secondary-button" onclick="recyclerSaveWallet()">Enregistrer mon solde</button><button id="recycler-wallet-clear" type="button" class="secondary-button" onclick="recyclerSaveWallet(true)">Effacer le solde renseigné</button></div><small>Le compteur utilise le dernier solde enregistré. Une modification non enregistrée sert uniquement à simuler le plan ci-dessous.</small><label>Boosters classiques à simuler<input id="recycler-exchange-count" type="number" min="0" step="1" value="1" oninput="recyclerRenderSummary()"></label></div><p id="recycler-projection-note" class="recycler-projection-note"></p><div class="workspace-actions"><button id="recycler-export" type="button" class="secondary-button" onclick="recyclerExportPlan()" disabled>Exporter le plan CSV</button><button id="recycler-copy" type="button" class="secondary-button" onclick="recyclerCopyPlan()" disabled>Copier le plan</button></div><div class="recycler-rate-table"><h4>Barème officiel</h4><dl><div><dt>Charbon</dt><dd>1 pt</dd></div><div><dt>Cuivre</dt><dd>2 pts</dd></div><div><dt>Fer</dt><dd>5 pts</dd></div><div><dt>Or</dt><dd>10 pts</dd></div><div><dt>Diamant</dt><dd>25 pts</dd></div><div><dt>Netherite</dt><dd>50 pts</dd></div></dl><p><strong>50 points = 1 booster classique de 5 cartes.</strong> Les cartes Mythiques sont secrètes et holographiques, donc non recyclables.</p></div><p id="recycler-message" class="workspace-feedback" role="status" aria-live="polite"></p></aside></div>
+            <div class="recycler-layout"><div class="recycler-inventory glass-panel"><div class="admin-section-heading"><div><span class="eyebrow">TES DOUBLONS STANDARD</span><h3>Choisir les cartes</h3></div><span class="status-pill">100 cartes différentes maximum par plan</span></div><div class="recycler-filters"><label>Recherche<input id="recycler-search" type="search" placeholder="Nom ou identifiant…" oninput="uiSchedule('recycler-search',recyclerRender)"></label><label>Rareté<select id="recycler-rarity" onchange="recyclerRender()"><option value="all">Toutes les raretés</option><option value="CHARBON">Charbon · 1 pt</option><option value="CUIVRE">Cuivre · 2 pts</option><option value="FER">Fer · 5 pts</option><option value="OR">Or · 10 pts</option><option value="DIAMANT">Diamant · 25 pts</option><option value="NETHERITE">Netherite · 50 pts</option></select></label><label>Classer<select id="recycler-sort" onchange="recyclerRender()"><option value="points-desc">Potentiel décroissant</option><option value="rarity-asc">Raretés basses d’abord</option><option value="quantity">Plus de doublons</option><option value="name">Nom A → Z</option></select></label></div><div class="recycler-protections"><label class="workspace-check"><input id="recycler-protect-notebook" type="checkbox" checked onchange="recyclerRender()"> Écarter mes cartes favorites</label><label class="workspace-check"><input id="recycler-protect-decks" type="checkbox" checked onchange="recyclerRender()"> Écarter les cartes de mes decks favoris</label></div><div class="workspace-actions recycler-selection-actions"><button class="secondary-button" type="button" onclick="recyclerPrepare('one')">1 par carte filtrée</button><button class="secondary-button" type="button" onclick="recyclerPrepare('max')">Maximum filtré</button><button class="secondary-button" type="button" onclick="recyclerPrepareBooster()">Compléter le prochain seuil de 50 pts</button><button class="secondary-button" type="button" onclick="recyclerPrepare('clear')">Vider le plan</button></div><p id="recycler-filter-count" class="admin-search-count" role="status"></p><div id="recycler-list" class="recycler-list"></div></div><aside class="recycler-plan glass-panel"><span class="eyebrow">SIMULATION · AUCUN TRANSFERT</span><h3>Ton plan de recyclage</h3><div class="recycler-plan-metrics"><div><strong id="recycler-plan-count">0</strong><span>standard à recycler</span></div><div><strong id="recycler-plan-points">0</strong><span>points à obtenir</span></div><div><strong id="recycler-plan-boosters">0</strong><span>boosters finançables</span></div></div><div class="settings-form"><label>Solde actuel MineCards (facultatif)<input id="recycler-balance" type="number" min="0" max="1000000000" step="1" aria-describedby="recycler-wallet-status" placeholder="À saisir depuis MineCards" oninput="recyclerRenderSummary()"></label><small id="recycler-wallet-status" role="status">Solde manuel à renseigner depuis MineCards.</small><div class="workspace-actions"><button id="recycler-wallet-save" type="button" class="secondary-button" onclick="recyclerSaveWallet()">Enregistrer mon solde</button><button id="recycler-wallet-clear" type="button" class="secondary-button" onclick="recyclerSaveWallet(true)">Effacer le solde renseigné</button></div><small>Le compteur utilise le dernier solde enregistré. Une modification non enregistrée sert uniquement à simuler le plan ci-dessous.</small><label>Boosters classiques à simuler<input id="recycler-exchange-count" type="number" min="0" step="1" value="1" oninput="recyclerRenderSummary()"></label></div><p id="recycler-projection-note" class="recycler-projection-note"></p><div class="workspace-actions"><button id="recycler-export" type="button" class="secondary-button" onclick="recyclerExportPlan()" disabled>Exporter le plan CSV</button><button id="recycler-copy" type="button" class="secondary-button" onclick="recyclerCopyPlan()" disabled>Copier le plan</button></div><div class="recycler-rate-table"><h4>Barème officiel</h4><dl><div><dt>Charbon</dt><dd>1 pt</dd></div><div><dt>Cuivre</dt><dd>2 pts</dd></div><div><dt>Fer</dt><dd>5 pts</dd></div><div><dt>Or</dt><dd>10 pts</dd></div><div><dt>Diamant</dt><dd>25 pts</dd></div><div><dt>Netherite</dt><dd>50 pts</dd></div></dl><p><strong>50 points = 1 booster classique de 5 cartes.</strong> Les cartes Mythiques sont secrètes et holographiques, donc non recyclables.</p></div><p id="recycler-message" class="workspace-feedback" role="status" aria-live="polite"></p></aside></div>
         </section>
 
         <section id="section-minecards" class="tab-section hidden space-y-6" aria-label="Connexion MineCards">
@@ -628,6 +608,7 @@
     </footer>
 
     <!-- Scripts et Données -->
+    <script src="/performance-ui.js"></script>
     <script src="/profile-media.js"></script>
     <script src="/edition-rules.js"></script>
     <script src="/profile-showcase.js"></script>
@@ -668,12 +649,19 @@
             const header = document.querySelector('header.glass-panel');
             const main = document.querySelector('main');
             const footer = document.querySelector('footer');
+            if(!desktop||typeof header.animate!=='function'||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+                sidebarAnimations.forEach(animation=>animation.cancel());sidebarAnimations=[];
+                applySidebarState(collapsed);root.classList.remove('sidebar-in-motion');
+                try{localStorage.setItem('mc-sidebar-collapsed',collapsed?'1':'0');}catch{}
+                return;
+            }
             const rect = element => {
                 const box = element.getBoundingClientRect();
                 return {left:box.left,top:box.top,width:box.width,height:box.height,bottom:box.bottom};
             };
             const visible = box => box.height > 0 && box.width > 0 && box.bottom > -60 && box.top < window.innerHeight + 60;
-            const content = [...main.querySelectorAll('.workspace-toolbar,.collection-overview,.library-heading,.library-filters,.collection-card,.saved-deck,.profile-summary,.profile-deck-panel,.profile-rarity-panel,.profile-highlight-panel,.profile-settings,.builder-console,.admin-users-panel,.admin-detail,.mc-connection,.mc-explorer')];
+            const activeSection=main.querySelector('.tab-section:not(.hidden)');
+            const content=[main.querySelector('.workspace-toolbar'),...(activeSection?.querySelectorAll('.collection-overview,.library-heading,.library-filters,.profile-summary,.profile-settings,.builder-console,.admin-users-panel,.admin-detail,.mc-connection,.mc-explorer')||[]),...[...uiVisibleCards].filter(node=>activeSection?.contains(node))].filter(Boolean);
             const shells = [main,footer].filter(Boolean);
             const masks = [header,...document.querySelectorAll('#sidebar-navigation .tab-button,#sidebar-account-actions > button')];
             const labels = [...document.querySelectorAll('.sidebar-brand-text,.sidebar-tab-label,.sidebar-toggle-label,#sidebar-account-actions > .logout-button span')];
@@ -871,7 +859,7 @@
             if (tabName === 'profile') fillProfileSettings();
             if (tabName === 'minecards') mcShow();
             if (tabName === 'recycler') recyclerRender();
-            if (tabName === 'builder') updateBuilderState();
+            if (tabName === 'builder') {updateBuilderState();if(!document.getElementById('arena-builder').classList.contains('hidden'))arenaRender();}
             window.scrollTo({top:0, behavior:'instant'});
         }
 
@@ -968,8 +956,9 @@
 
         function saveCardsStorage() {
             try {
-                localStorage.setItem('tcg_cards', JSON.stringify(cards));
-                localStorage.setItem('minecard_tcg_cards_v3', JSON.stringify(cards));
+                const cachedCards=JSON.stringify(cards);
+                localStorage.setItem('tcg_cards', cachedCards);
+                localStorage.setItem('minecard_tcg_cards_v3', cachedCards);
             } catch (e) { alert("Stockage local plein."); }
             saveProfileData();
         }
@@ -1033,7 +1022,7 @@
         }
 
         function updateStats() {
-            const counts=collectionCopyStats(cards);
+            const counts=uiCollectionSnapshot().counts;
             document.getElementById('stat-total').innerText = counts.unique;
             document.getElementById('stat-duplicates').textContent = counts.duplicates.toLocaleString('fr-FR');
             if (cards.length > 0) {
@@ -1051,12 +1040,13 @@
         }
 
         function filterAndRenderCards() {
+            uiCancelTask('collection-filter');
             const advanced=workspaceFilterState();
-            const search = document.getElementById('search-input').value.toLowerCase();
+            const search = workspaceNormalize(document.getElementById('search-input').value);
             const rarity = document.getElementById('rarity-filter').value;
             const sort = document.getElementById('sort-select').value;
             const duplicatesOnly=sort==='duplicates-desc'||sort==='duplicates-asc';
-            const duplicateEntries=duplicatesOnly?collectionCopyStats(cards).entries.filter(entry=>entry.duplicates>0):[];
+            const duplicateEntries=duplicatesOnly?uiCollectionSnapshot().counts.entries.filter(entry=>entry.duplicates>0):[];
             const duplicateCounts=new Map(duplicateEntries.map(entry=>[entry.card,entry.duplicates]));
             const source=duplicatesOnly?duplicateEntries.map(entry=>entry.card):cards;
 
@@ -1094,7 +1084,7 @@
             const tones = {Mythique:'mythic', Netherite:'netherite', Diamant:'diamond', Or:'gold', Fer:'iron', Cuivre:'copper', Charbon:'coal'};
             const name = escapeHtml(card.nom);
             const visual = card.image && String(card.image).trim()
-                ? `<img src="${escapeHtml(card.image)}" alt="${name}" loading="lazy">`
+                ? `<img src="${escapeHtml(card.image)}" alt="${name}" loading="lazy" decoding="async">`
                 : `<div class="card-art-placeholder" aria-hidden="true"><span class="card-art-orbit"></span><i class="fa-solid ${icons[card.rarete] || 'fa-cube'}"></i></div>`;
             return `
                 <article class="collection-card tone-${tones[card.rarete] || 'iron'} ${EditionRules.hasHolo(card)?'has-holographic':''}">
@@ -1122,15 +1112,8 @@
         }
 
         function renderCards(list, duplicateCounts = null) {
-            const grid = document.getElementById('cards-grid');
-            const emptyState = document.getElementById('empty-state');
-            grid.innerHTML = '';
-            if (list.length === 0) {
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                grid.innerHTML = list.map(card => createCardHtml(card, true, duplicateCounts?.get(card)??null)).join('');
-            }
+            document.getElementById('empty-state').classList.toggle('hidden',list.length>0);
+            uiPaintCollection(list,duplicateCounts);
         }
 
         function generateDeck() {
@@ -1393,7 +1376,7 @@
             }
         }
 
-        window.addEventListener('load', initStorage);
+        document.addEventListener('DOMContentLoaded', initStorage);
     </script>
     <script src="/minecards-ui.js"></script>
     <script src="/workspace-ui.js"></script>
